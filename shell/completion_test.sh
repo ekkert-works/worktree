@@ -23,6 +23,9 @@ git worktree add -q -b feature/one "$scratch_directory/one tree"
 git worktree add -q -b feature/two "$scratch_directory/two tree"
 git worktree add -q --detach "$scratch_directory/detached"
 git branch unused
+git remote add origin "$scratch_directory/repository"
+git update-ref refs/remotes/origin/remote-only HEAD
+git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/remote-only
 
 if [ -n "${ZSH_VERSION-}" ]; then
     [ "${_comps[worktree]}" = _worktree_complete_zsh ]
@@ -67,7 +70,7 @@ git wt feature/one
 complete_branches feature/t
 [ "${suggestions[*]}" = feature/two ]
 
-# Missing worktrees and invalid arguments keep the current directory.
+# A linked worktree must keep its branch when the target has no worktree.
 previous_directory="$PWD"
 if git wt unused > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
     exit 1
@@ -75,13 +78,26 @@ fi
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = feature/one ]
 [ ! -s "$scratch_directory/stdout" ]
-[ "$(cat "$scratch_directory/stderr")" = 'worktree: no worktree for branch' ]
+[[ "$(cat "$scratch_directory/stderr")" == *'linked worktree'* ]]
+
+# In the main checkout, local and remote-only branches use Git checkout.
+git wt main
+previous_directory="$PWD"
+git wt unused
+[ "$PWD" = "$previous_directory" ]
+[ "$(git branch --show-current)" = unused ]
+worktree switch remote-only
+[ "$PWD" = "$previous_directory" ]
+[ "$(git branch --show-current)" = remote-only ]
+[ "$(git rev-parse --abbrev-ref '@{upstream}')" = origin/remote-only ]
+
+# Invalid Git subcommand arguments keep the current directory and branch.
 if git wt > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
     exit 1
 fi
 [ "$(cat "$scratch_directory/stderr")" = 'usage: git wt <branch>' ]
-git wt main
-[ "$(git branch --show-current)" = main ]
+[ "$PWD" = "$previous_directory" ]
+[ "$(git branch --show-current)" = remote-only ]
 
 # Failures stay silent and must not fall back to filenames.
 cd "$scratch_directory"
