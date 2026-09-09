@@ -66,7 +66,8 @@ func TestRun(t *testing.T) {
 		{name: "usage", code: 2},
 		{name: "unknown command", arguments: []string{"add", "feature"}, code: 2},
 		{name: "invalid branch", arguments: []string{"switch", ""}, err: worktree.ErrInvalidBranch, code: 2},
-		{name: "missing branch", arguments: []string{"switch", "missing"}, err: worktree.ErrNotFound, code: 1},
+		{name: "checkout failure", arguments: []string{"switch", "missing"}, err: worktree.ErrCheckoutFailure, code: 1},
+		{name: "linked worktree", arguments: []string{"switch", "unused"}, err: worktree.ErrLinkedCheckout, code: 1},
 		{name: "git failure", arguments: []string{"switch", "feature"}, err: worktree.ErrReadFailure, code: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -93,7 +94,7 @@ func TestRunGitWT(t *testing.T) {
 		{name: "branch", arguments: []string{"feature"}, output: "/feature tree\n"},
 		{name: "missing branch", code: 2},
 		{name: "extra argument", arguments: []string{"feature", "extra"}, code: 2},
-		{name: "no worktree", arguments: []string{"unused"}, err: worktree.ErrNotFound, code: 1},
+		{name: "linked worktree", arguments: []string{"unused"}, err: worktree.ErrLinkedCheckout, code: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer

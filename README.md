@@ -1,6 +1,6 @@
 # Worktree
 
-A small Go CLI to switch to an existing Git worktree by branch name.
+A small Go CLI to switch to an existing Git worktree or check out a branch.
 Requires Go 1.26 and Git on `PATH`.
 
 ## Installation
@@ -50,16 +50,34 @@ git wt feature/my-change
 worktree switch feature/my-change
 ```
 
-The sourced script defines a `git` shell function that handles `git wt <branch>`
-and passes other commands to Git. Without this function, the standalone Git
-subcommand prints the destination path. It cannot change the parent shell directory.
+Use the branch name of an existing worktree to move to it. The argument is
+a branch name, not a worktree directory path.
 
-The branch must match exactly. The shell function changes the current directory.
-The binary alone prints the destination path: a child process cannot change its
-parent shell's directory. Use `command worktree switch <branch>` to get the path.
-Paths with spaces are supported. Missing or ambiguous branches produce an error
-and leave the current directory unchanged. Detached worktrees cannot be selected
-by branch. This command does not create, remove, or modify worktrees.
+The sourced script defines a `git` shell function that handles `git wt <branch>`
+and passes other commands to Git. This function is required to change the shell's
+directory. Without it, the standalone Git subcommand prints the destination path.
+
+If the branch has an existing worktree, the shell function changes to that
+directory. The branch name must match exactly.
+
+If the branch has no worktree, the command runs `git checkout <branch> --` in
+the current directory. This is allowed only in the main checkout. In a linked
+worktree, including a detached worktree, the command returns an error and keeps
+the current branch. Switching to another existing worktree is still allowed.
+
+Git applies its normal checks for local changes and remote branch selection.
+An unqualified remote branch name can create a local tracking branch. A qualified
+name such as `origin/feature` checks out that remote ref with a detached HEAD,
+as `git checkout` does.
+
+The binary performs the checkout, if needed, and prints the destination path.
+A child process cannot change its parent shell's directory. Running
+`command git wt <branch>` or `command worktree switch <branch>` can change the checked-out branch;
+it is not a read-only path lookup.
+
+Paths with spaces are supported. Failed operations leave the current directory
+unchanged. Detached worktrees cannot be selected by branch. The command does not
+create or remove worktree directories.
 
 Exit codes: `0` for success, `1` for an operation failure, `2` for invalid usage.
 
@@ -83,10 +101,13 @@ internal/worktree/gitcli/              Git outbound adapter
 shell/worktree.sh                      Bash/Zsh directory change and completion
 ```
 
-Both CLI entry points call the `SwitchWorktree` inbound port. The use case calls the
+The CLI calls the `SwitchWorktree` inbound port. The use case calls the
 `WorktreeLister` outbound port. The Git adapter implements that port and converts
 process and parsing failures to use-case errors. Only `main` wires the adapters.
-The core uses plain Go types and has no CLI or process dependencies.
+The switch use case also calls `CheckoutLocationReader` to check whether the
+current directory is in a linked worktree. It calls `BranchCheckout` only when
+no existing worktree matches and the current directory is in the main checkout.
+The core owns this rule and uses plain Go types, with no CLI or process dependencies.
 
 Shell completion calls the private `__complete switch <prefix>` CLI protocol.
 The CLI calls `CompleteBranches`, which uses the same `WorktreeLister` port.

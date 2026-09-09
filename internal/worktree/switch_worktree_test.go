@@ -38,18 +38,23 @@ func TestSwitch(t *testing.T) {
 	}{
 		{name: "match", branch: "feature", worktrees: []worktree.Worktree{detached, feature}, wantPath: "/repo with spaces"},
 		{name: "empty", wantError: worktree.ErrInvalidBranch},
-		{name: "missing", branch: "other", worktrees: []worktree.Worktree{feature}, wantError: worktree.ErrNotFound},
-		{name: "exact match only", branch: "feat", worktrees: []worktree.Worktree{feature}, wantError: worktree.ErrNotFound},
+		{name: "option", branch: "--force", wantError: worktree.ErrInvalidBranch},
+		{name: "missing", branch: "other", worktrees: []worktree.Worktree{feature}, wantError: worktree.ErrCheckoutFailure},
+		{name: "exact match only", branch: "feat", worktrees: []worktree.Worktree{feature}, wantError: worktree.ErrCheckoutFailure},
 		{name: "ambiguous", branch: "feature", worktrees: []worktree.Worktree{feature, feature}, wantError: worktree.ErrAmbiguous},
 		{name: "read failure", branch: "feature", listError: worktree.ErrReadFailure, wantError: worktree.ErrReadFailure},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			lister := &fakeLister{worktrees: test.worktrees, err: test.listError}
-			result, err := worktree.NewSwitchWorktree(lister).Switch(context.Background(), worktree.SwitchCommand{Branch: test.branch})
+			checkout := &fakeCheckout{checkoutError: worktree.ErrCheckoutFailure}
+			result, err := worktree.NewSwitchWorktree(lister, checkout, checkout).Switch(context.Background(), worktree.SwitchCommand{Branch: test.branch})
 			if !errors.Is(err, test.wantError) || result.Path != test.wantPath {
 				t.Fatalf("got %+v, %v; want path %q, %v", result, err, test.wantPath, test.wantError)
 			}
-			if test.branch == "" && lister.calls != 0 {
+			if test.wantError != worktree.ErrCheckoutFailure && (checkout.locationCalls != 0 || checkout.checkoutCalls != 0) {
+				t.Fatal("checkout reached before resolving existing worktrees")
+			}
+			if test.wantError == worktree.ErrInvalidBranch && lister.calls != 0 {
 				t.Fatal("invalid input reached lister")
 			}
 		})
