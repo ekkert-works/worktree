@@ -28,7 +28,7 @@ func TestDependenciesPointInward(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			if filepath.Dir(path) == "." && dependency != "context" && dependency != "errors" {
+			if filepath.Dir(path) == "." && dependency != "context" && dependency != "errors" && dependency != "sort" && dependency != "strings" {
 				t.Errorf("core file %s imports %s; review core dependency allowlist", path, dependency)
 			}
 			if strings.HasPrefix(dependency, core+"/") {

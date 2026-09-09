@@ -17,6 +17,16 @@ the absolute path to this checkout:
 source /path/to/worktree/shell/worktree.sh
 ```
 
+For Zsh, load the script after completion is initialized. If your shell setup
+does not initialize completion, add these lines before the `source` line:
+
+```zsh
+autoload -Uz compinit
+compinit
+```
+
+After an update, run `go install ./cmd/worktree` again and source the script again.
+
 ## Usage
 
 From a Git repository or one of its worktrees:
@@ -34,21 +44,33 @@ by branch. This command does not create, remove, or modify worktrees.
 
 Exit codes: `0` for success, `1` for an operation failure, `2` for invalid usage.
 
+## Branch completion
+
+Type `worktree switch ` and press Tab to complete a branch name in Bash or Zsh.
+A prefix such as `worktree switch feature/` limits the suggestions. Completion
+lists sorted, unique branch names from existing worktrees. It excludes detached
+worktrees and branches without a worktree. Outside a repository, it stays silent.
+
 ## Structure
 
 ```text
-cmd/worktree/main.go                 composition root
-internal/worktree/worktree.go        entity and domain errors
-internal/worktree/switch_worktree.go  use case and inbound/outbound ports
-internal/worktree/cliin/             CLI inbound adapter
-internal/worktree/gitcli/            Git outbound adapter
-shell/worktree.sh                    Bash/Zsh directory change
+cmd/worktree/main.go                   composition root
+internal/worktree/worktree.go          entity and domain errors
+internal/worktree/switch_worktree.go    use case and inbound/outbound ports
+internal/worktree/complete_branches.go  branch completion use case and inbound port
+internal/worktree/cliin/               CLI inbound adapter
+internal/worktree/gitcli/              Git outbound adapter
+shell/worktree.sh                      Bash/Zsh directory change and completion
 ```
 
 The CLI calls the `SwitchWorktree` inbound port. The use case calls the
 `WorktreeLister` outbound port. The Git adapter implements that port and converts
 process and parsing failures to use-case errors. Only `main` wires the adapters.
 The core uses plain Go types and has no CLI or process dependencies.
+
+Shell completion calls the private `__complete switch <prefix>` CLI protocol.
+The CLI calls `CompleteBranches`, which uses the same `WorktreeLister` port.
+The protocol writes one branch per line and suppresses failure diagnostics.
 
 ## Checks
 
@@ -57,4 +79,6 @@ go test ./...
 go vet ./...
 bash -n shell/worktree.sh
 zsh -n shell/worktree.sh
+bash shell/completion_test.sh
+zsh shell/completion_test.sh
 ```
