@@ -121,6 +121,4 @@ go test ./...
 go vet ./...
 bash -n shell/worktree.sh
 zsh -n shell/worktree.sh
-bash shell/completion_test.sh
-zsh shell/completion_test.sh
 ```
