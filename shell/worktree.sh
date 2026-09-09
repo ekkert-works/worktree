@@ -1,4 +1,4 @@
-# Source this file from Bash or Zsh after installing the worktree binary.
+# Source this file from Bash or Zsh after installing worktree and git-wt.
 worktree() {
     if [ "$#" -ne 2 ] || [ "$1" != "switch" ]; then
         command worktree "$@"
@@ -11,6 +11,15 @@ worktree() {
     destination="${destination%.}"
     destination="${destination%?}"
     cd -- "$destination"
+}
+
+# Git external commands cannot change the parent shell's directory.
+git() {
+    if [ "$#" -eq 2 ] && [ "$1" = wt ]; then
+        worktree switch "$2"
+        return $?
+    fi
+    command git "$@"
 }
 
 _worktree_complete_bash() {

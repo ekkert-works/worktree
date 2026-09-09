@@ -5,9 +5,12 @@ project_directory="$PWD"
 scratch_directory=$(mktemp -d /tmp/worktree-completion.XXXXXX)
 trap 'rm -rf -- "$scratch_directory"' EXIT
 go build -o "$scratch_directory/bin/worktree" ./cmd/worktree
+go build -o "$scratch_directory/bin/git-wt" ./cmd/git-wt
 export PATH="$scratch_directory/bin:$PATH"
 
 if [ -n "${ZSH_VERSION-}" ]; then
+    # Directory hooks must not replace the test binary through PATH changes.
+    chpwd_functions=()
     autoload -Uz compinit
     compinit -u -D
 fi
@@ -56,10 +59,29 @@ complete_branches ''
 complete_branches missing
 [ "${#suggestions[@]}" -eq 0 ]
 
+# Git finds the standalone command through PATH; it prints the destination.
+[ "$(command git wt feature/one)" = "$(cd "$scratch_directory/one tree" && pwd -P)" ]
+
 # Completion also works inside a linked worktree.
-worktree switch feature/one
+git wt feature/one
 complete_branches feature/t
 [ "${suggestions[*]}" = feature/two ]
+
+# Missing worktrees and invalid arguments keep the current directory.
+previous_directory="$PWD"
+if git wt unused > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
+    exit 1
+fi
+[ "$PWD" = "$previous_directory" ]
+[ "$(git branch --show-current)" = feature/one ]
+[ ! -s "$scratch_directory/stdout" ]
+[ "$(cat "$scratch_directory/stderr")" = 'worktree: no worktree for branch' ]
+if git wt > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
+    exit 1
+fi
+[ "$(cat "$scratch_directory/stderr")" = 'usage: git wt <branch>' ]
+git wt main
+[ "$(git branch --show-current)" = main ]
 
 # Failures stay silent and must not fall back to filenames.
 cd "$scratch_directory"
