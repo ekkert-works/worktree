@@ -1,0 +1,60 @@
+# Worktree
+
+A small Go CLI to switch to an existing Git worktree by branch name.
+Requires Go 1.26 and Git on `PATH`.
+
+## Installation
+
+```sh
+go install ./cmd/worktree
+```
+
+Add the Go binary directory (`go env GOPATH` followed by `/bin`, unless
+`GOBIN` is set) to `PATH`. Add this line to `.bashrc` or `.zshrc`, using
+the absolute path to this checkout:
+
+```sh
+source /path/to/worktree/shell/worktree.sh
+```
+
+## Usage
+
+From a Git repository or one of its worktrees:
+
+```sh
+worktree switch feature/my-change
+```
+
+The branch must match exactly. The shell function changes the current directory.
+The binary alone prints the destination path: a child process cannot change its
+parent shell's directory. Use `command worktree switch <branch>` to get the path.
+Paths with spaces are supported. Missing or ambiguous branches produce an error
+and leave the current directory unchanged. Detached worktrees cannot be selected
+by branch. This command does not create, remove, or modify worktrees.
+
+Exit codes: `0` for success, `1` for an operation failure, `2` for invalid usage.
+
+## Structure
+
+```text
+cmd/worktree/main.go                 composition root
+internal/worktree/worktree.go        entity and domain errors
+internal/worktree/switch_worktree.go  use case and inbound/outbound ports
+internal/worktree/cliin/             CLI inbound adapter
+internal/worktree/gitcli/            Git outbound adapter
+shell/worktree.sh                    Bash/Zsh directory change
+```
+
+The CLI calls the `SwitchWorktree` inbound port. The use case calls the
+`WorktreeLister` outbound port. The Git adapter implements that port and converts
+process and parsing failures to use-case errors. Only `main` wires the adapters.
+The core uses plain Go types and has no CLI or process dependencies.
+
+## Checks
+
+```sh
+go test ./...
+go vet ./...
+bash -n shell/worktree.sh
+zsh -n shell/worktree.sh
+```
