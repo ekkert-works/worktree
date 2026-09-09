@@ -6,16 +6,14 @@ Requires Go 1.26 and Git on `PATH`.
 ## Installation
 
 ```sh
-go install ./cmd/git-wt
+go install ./cmd/worktree
 ```
 
-This installs the Git subcommand `git-wt`. Git finds `git-wt`
-on `PATH` when you run `git wt`.
+This installs the `worktree` command.
 
 ### Zsh configuration
 
-Add this block to `~/.zshrc`. Replace the source path with your checkout path.
-Go must already be on `PATH`.
+Add this block to `~/.zshrc`. Go must already be on `PATH`.
 
 ```zsh
 export PATH="${GOBIN:-$(go env GOPATH)/bin}:$PATH"
@@ -23,37 +21,38 @@ export PATH="${GOBIN:-$(go env GOPATH)/bin}:$PATH"
 autoload -Uz compinit
 compinit
 
-source "$HOME/development/ekkert-works/worktree/shell/worktree.sh"
+eval "$(worktree init zsh)"
 ```
 
 If your Zsh framework already runs `compinit`, omit those two lines and put
-the `source` line after the framework setup. Open a new shell to load the config.
+the `eval` line after the framework setup. Open a new shell to load the config.
 
 ### Bash configuration
 
-Add the Go binary directory to `PATH` and source the script in `~/.bashrc`:
+Add the Go binary directory to `PATH` and load the integration in `~/.bashrc`:
 
 ```bash
 export PATH="${GOBIN:-$(go env GOPATH)/bin}:$PATH"
-source "$HOME/development/ekkert-works/worktree/shell/worktree.sh"
+eval "$(worktree init bash)"
 ```
 
-After an update, run the install command again and source the script again.
+After an update, run the install command again.
 
 ## Usage
 
 From a Git repository or one of its worktrees:
 
 ```sh
-git wt feature/my-change
+worktree switch feature/my-change
 ```
 
 Use the branch name of an existing worktree to move to it. The argument is
 a branch name, not a worktree directory path.
 
-The sourced script defines a `git` shell function that handles `git wt <branch>`
-and passes other commands to Git. This function is required to change the shell's
-directory. Without it, the standalone Git subcommand prints the destination path.
+The integration defines a `worktree` shell function that handles
+`worktree switch <branch>` and passes other invocations to the binary. This
+function is required to change the shell's directory. Without it, the binary
+prints the destination path only.
 
 If the branch has an existing worktree, the shell function changes to that
 directory. The branch name must match exactly.
@@ -70,7 +69,7 @@ as `git checkout` does. Completion uses local remote-tracking refs; it does not 
 
 The binary performs the checkout, if needed, and prints the destination path.
 A child process cannot change its parent shell's directory. Running
-`command git wt <branch>` can change the checked-out branch;
+`command worktree switch <branch>` can change the checked-out branch;
 it is not a read-only path lookup.
 
 Paths with spaces are supported. Failed operations leave the current directory
@@ -81,9 +80,8 @@ Exit codes: `0` for success, `1` for an operation failure, `2` for invalid usage
 
 ## Branch completion
 
-Type `git wt ` and press Tab to complete a branch name.
-The `git wt` form uses your existing Git completion setup in Bash or Zsh.
-A prefix such as `git wt feature/` limits the suggestions. Completion
+Type `worktree switch ` and press Tab to complete a branch name.
+A prefix such as `worktree switch feature/` limits the suggestions. Completion
 lists sorted, unique local and remote-tracking branch names, including branches
 without a worktree. Remote branches appear with and without the remote prefix.
 Symbolic remote refs such as `origin/HEAD` are excluded. In a linked worktree,
@@ -94,14 +92,17 @@ completion stays silent.
 ## Structure
 
 ```text
-cmd/git-wt/main.go                     Git subcommand composition root
+cmd/worktree/main.go                   composition root
 internal/worktree/worktree.go          entity and domain errors
 internal/worktree/switch_worktree.go    use case and inbound/outbound ports
 internal/worktree/complete_branches.go  branch completion use case and inbound port
-internal/worktree/cliin/               CLI inbound adapter
+internal/worktree/cliin/               CLI inbound adapter and shell integration
 internal/worktree/gitcli/              Git outbound adapter
-shell/worktree.sh                      Bash/Zsh directory change and completion
 ```
+
+The `worktree init <bash|zsh>` command prints the Bash or Zsh integration that
+provides the directory change and completion. Load it with
+`eval "$(worktree init <bash|zsh>)"`.
 
 The CLI calls the `SwitchWorktree` inbound port. The use case calls the
 `WorktreeLister` outbound port. The Git adapter implements that port and converts
@@ -111,7 +112,7 @@ current directory is in a linked worktree. It calls `BranchCheckout` only when
 no existing worktree matches and the current directory is in the main checkout.
 The core owns this rule and uses plain Go types, with no CLI or process dependencies.
 
-Shell completion calls the private `git-wt __complete switch <prefix>` CLI protocol.
+Shell completion calls the private `worktree __complete switch <prefix>` CLI protocol.
 The CLI calls `CompleteBranches`, which uses `WorktreeLister` and `BranchLister`.
 The protocol writes one branch per line and suppresses failure diagnostics.
 
@@ -120,8 +121,4 @@ The protocol writes one branch per line and suppresses failure diagnostics.
 ```sh
 go test ./...
 go vet ./...
-bash -n shell/worktree.sh
-zsh -n shell/worktree.sh
-bash shell/completion_test.sh
-zsh shell/completion_test.sh
 ```

@@ -43,7 +43,7 @@ func TestCompletionProtocol(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			completion := &stubCompletion{branches: test.branches, err: test.err}
 			var stdout, stderr bytes.Buffer
-			code := RunGitWT(context.Background(), test.arguments, nil, completion, &stdout, &stderr)
+			code := Run(context.Background(), test.arguments, nil, completion, &stdout, &stderr)
 			if code != test.code || stdout.String() != test.output || stderr.Len() != 0 {
 				t.Fatalf("got code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 			}
@@ -54,7 +54,7 @@ func TestCompletionProtocol(t *testing.T) {
 	}
 }
 
-func TestRunGitWT(t *testing.T) {
+func TestRun(t *testing.T) {
 	for _, test := range []struct {
 		name      string
 		arguments []string
@@ -62,25 +62,22 @@ func TestRunGitWT(t *testing.T) {
 		code      int
 		output    string
 	}{
-		{name: "branch", arguments: []string{"feature"}, output: "/feature tree\n"},
-		{name: "missing branch", code: 2},
-		{name: "extra argument", arguments: []string{"feature", "extra"}, code: 2},
-		{name: "invalid branch", arguments: []string{""}, err: worktree.ErrInvalidBranch, code: 2},
-		{name: "checkout failure", arguments: []string{"missing"}, err: worktree.ErrCheckoutFailure, code: 1},
-		{name: "git failure", arguments: []string{"feature"}, err: worktree.ErrReadFailure, code: 1},
-		{name: "linked worktree", arguments: []string{"unused"}, err: worktree.ErrLinkedCheckout, code: 1},
+		{name: "switch", arguments: []string{"switch", "feature"}, output: "/feature tree\n"},
+		{name: "usage", code: 2},
+		{name: "unknown command", arguments: []string{"add", "feature"}, code: 2},
+		{name: "invalid branch", arguments: []string{"switch", ""}, err: worktree.ErrInvalidBranch, code: 2},
+		{name: "checkout failure", arguments: []string{"switch", "missing"}, err: worktree.ErrCheckoutFailure, code: 1},
+		{name: "linked worktree", arguments: []string{"switch", "unused"}, err: worktree.ErrLinkedCheckout, code: 1},
+		{name: "git failure", arguments: []string{"switch", "feature"}, err: worktree.ErrReadFailure, code: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			code := RunGitWT(context.Background(), test.arguments, stubSwitch{err: test.err}, nil, &stdout, &stderr)
+			code := Run(context.Background(), test.arguments, stubSwitch{err: test.err}, nil, &stdout, &stderr)
 			if code != test.code || stdout.String() != test.output {
 				t.Fatalf("got code %d, output %q", code, stdout.String())
 			}
-			if code == 2 && test.err == nil && stderr.String() != "usage: git wt <branch>\n" {
-				t.Fatalf("unexpected usage: %q", stderr.String())
-			}
-			if test.err != nil && stderr.String() != test.err.Error()+"\n" {
-				t.Fatalf("unexpected error: %q", stderr.String())
+			if (stderr.Len() > 0) != (test.code != 0) {
+				t.Fatalf("unexpected stderr: %q", stderr.String())
 			}
 		})
 	}

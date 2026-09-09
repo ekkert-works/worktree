@@ -1,10 +1,9 @@
 # Run with both Bash and Zsh from the repository root.
 set -e
 
-project_directory="$PWD"
 scratch_directory=$(mktemp -d /tmp/worktree-completion.XXXXXX)
 trap 'rm -rf -- "$scratch_directory"' EXIT
-go build -o "$scratch_directory/bin/git-wt" ./cmd/git-wt
+go build -o "$scratch_directory/bin/worktree" ./cmd/worktree
 export PATH="$scratch_directory/bin:$PATH"
 
 if [ -n "${ZSH_VERSION-}" ]; then
@@ -12,8 +11,10 @@ if [ -n "${ZSH_VERSION-}" ]; then
     chpwd_functions=()
     autoload -Uz compinit
     compinit -u -D
+    eval "$(worktree init zsh)"
+else
+    eval "$(worktree init bash)"
 fi
-source "$project_directory/shell/worktree.sh"
 
 git init -q --initial-branch=main "$scratch_directory/repository"
 cd "$scratch_directory/repository"
@@ -27,34 +28,29 @@ git update-ref refs/remotes/origin/remote-only HEAD
 git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/remote-only
 
 if [ -n "${ZSH_VERSION-}" ]; then
+    [ "${_comps[worktree]}" = _worktree_complete_zsh ]
     # Capture candidates at the completion boundary without an interactive ZLE.
     compadd() {
         [ "$1" = -- ]
         shift
         suggestions=("$@")
     }
+else
+    [[ "$(complete -p worktree)" == *"-F _worktree_complete_bash worktree" ]]
 fi
-
-__gitcomp_nl() {
-    suggestions=()
-    local branch
-    while IFS= read -r branch; do
-        [ -n "$branch" ] && suggestions+=("$branch")
-    done <<< "$1"
-    return 0
-}
 
 complete_branches() {
     suggestions=()
     if [ -n "${ZSH_VERSION-}" ]; then
-        words=(wt "$1")
-        CURRENT=2
+        words=(worktree switch "$1")
+        CURRENT=3
         PREFIX="$1"
-        _git-wt
+        _worktree_complete_zsh
     else
-        cword=2
-        cur="$1"
-        _git_wt
+        COMP_WORDS=(worktree switch "$1")
+        COMP_CWORD=2
+        _worktree_complete_bash
+        suggestions=("${COMPREPLY[@]}")
     fi
 }
 
@@ -66,23 +62,17 @@ complete_branches ''
 complete_branches missing
 [ "${#suggestions[@]}" -eq 0 ]
 
-# The Bash completion provider also supports Zsh setups that use it.
-cword=2
-cur=feature/
-_git_wt
-[ "${suggestions[*]}" = 'feature/one feature/two' ]
-
-# Git finds the standalone command through PATH; it prints the destination.
-[ "$(command git wt feature/one)" = "$(cd "$scratch_directory/one tree" && pwd -P)" ]
+# The standalone command prints the destination without changing the directory.
+[ "$(command worktree switch feature/one)" = "$(cd "$scratch_directory/one tree" && pwd -P)" ]
 
 # Completion also works inside a linked worktree.
-git wt feature/one
+worktree switch feature/one
 complete_branches feature/t
 [ "${suggestions[*]}" = feature/two ]
 
 # A linked worktree must keep its branch when the target has no worktree.
 previous_directory="$PWD"
-if git wt unused > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
+if worktree switch unused > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
     exit 1
 fi
 [ "$PWD" = "$previous_directory" ]
@@ -91,21 +81,21 @@ fi
 [[ "$(cat "$scratch_directory/stderr")" == *'linked worktree'* ]]
 
 # In the main checkout, local and remote-only branches use Git checkout.
-git wt main
+worktree switch main
 previous_directory="$PWD"
-git wt unused
+worktree switch unused
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = unused ]
-git wt remote-only
+worktree switch remote-only
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = remote-only ]
 [ "$(git rev-parse --abbrev-ref '@{upstream}')" = origin/remote-only ]
 
-# Invalid Git subcommand arguments keep the current directory and branch.
-if git wt > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
+# Invalid arguments keep the current directory and branch.
+if worktree switch > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
     exit 1
 fi
-[ "$(cat "$scratch_directory/stderr")" = 'usage: git wt <branch>' ]
+[ "$(cat "$scratch_directory/stderr")" = 'usage: worktree switch <branch>' ]
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = remote-only ]
 

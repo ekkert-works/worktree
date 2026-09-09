@@ -9,16 +9,19 @@ import (
 	"github.com/ekkert-works/worktree/internal/worktree"
 )
 
-// RunGitWT writes destinations or completion candidates for the Git subcommand.
-func RunGitWT(ctx context.Context, arguments []string, useCase worktree.SwitchWorktree, completion worktree.CompleteBranches, stdout, stderr io.Writer) int {
+// Run writes destinations or completion candidates to stdout.
+func Run(ctx context.Context, arguments []string, useCase worktree.SwitchWorktree, completion worktree.CompleteBranches, stdout, stderr io.Writer) int {
 	if len(arguments) > 0 && arguments[0] == "__complete" {
 		return complete(ctx, arguments[1:], completion, stdout)
 	}
-	if len(arguments) != 1 {
-		fmt.Fprintln(stderr, "usage: git wt <branch>")
+	if len(arguments) > 0 && arguments[0] == "init" {
+		return initShell(arguments[1:], stdout, stderr)
+	}
+	if len(arguments) != 2 || arguments[0] != "switch" {
+		fmt.Fprintln(stderr, "usage: worktree switch <branch>")
 		return 2
 	}
-	return switchBranch(ctx, arguments[0], useCase, stdout, stderr)
+	return switchBranch(ctx, arguments[1], useCase, stdout, stderr)
 }
 
 func switchBranch(ctx context.Context, branch string, useCase worktree.SwitchWorktree, stdout, stderr io.Writer) int {
