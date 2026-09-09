@@ -58,9 +58,25 @@ complete_branches feature/
 [ "${#suggestions[@]}" -eq 2 ]
 [ "${suggestions[*]}" = 'feature/one feature/two' ]
 complete_branches ''
-[ "${suggestions[*]}" = 'feature/one feature/two main' ]
+[ "${suggestions[*]}" = 'feature/one feature/two main origin/remote-only remote-only unused' ]
 complete_branches missing
 [ "${#suggestions[@]}" -eq 0 ]
+
+# Both Git completion providers use the same branch list.
+if [ -n "${ZSH_VERSION-}" ]; then
+    words=(wt feature/)
+    CURRENT=2
+    PREFIX=feature/
+    _git-wt
+    [ "${suggestions[*]}" = 'feature/one feature/two' ]
+fi
+__gitcomp_nl() {
+    git_suggestions="$1"
+}
+cword=2
+cur=feature/
+_git_wt
+[ "$git_suggestions" = "$(printf 'feature/one\nfeature/two')" ]
 
 # Git finds the standalone command through PATH; it prints the destination.
 [ "$(command git wt feature/one)" = "$(cd "$scratch_directory/one tree" && pwd -P)" ]

@@ -13,10 +13,17 @@ type CompleteBranches interface {
 type CompleteCommand struct{ Prefix string }
 type CompleteResult struct{ Branches []string }
 
-type completeBranches struct{ lister WorktreeLister }
+type BranchLister interface {
+	ListBranches(ctx context.Context) ([]string, error)
+}
 
-func NewCompleteBranches(lister WorktreeLister) CompleteBranches {
-	return completeBranches{lister: lister}
+type completeBranches struct {
+	lister   WorktreeLister
+	branches BranchLister
+}
+
+func NewCompleteBranches(lister WorktreeLister, branches BranchLister) CompleteBranches {
+	return completeBranches{lister: lister, branches: branches}
 }
 
 func (u completeBranches) Complete(ctx context.Context, command CompleteCommand) (CompleteResult, error) {
@@ -24,10 +31,16 @@ func (u completeBranches) Complete(ctx context.Context, command CompleteCommand)
 	if err != nil {
 		return CompleteResult{}, err
 	}
+	candidates, err := u.branches.ListBranches(ctx)
+	if err != nil {
+		return CompleteResult{}, err
+	}
+	for _, candidate := range worktrees {
+		candidates = append(candidates, candidate.Branch())
+	}
 	seen := make(map[string]bool)
 	var branches []string
-	for _, candidate := range worktrees {
-		branch := candidate.Branch()
+	for _, branch := range candidates {
 		if branch == "" || seen[branch] || !strings.HasPrefix(branch, command.Prefix) {
 			continue
 		}
