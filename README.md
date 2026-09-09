@@ -68,7 +68,7 @@ the current branch. Switching to another existing worktree is still allowed.
 Git applies its normal checks for local changes and remote branch selection.
 An unqualified remote branch name can create a local tracking branch. A qualified
 name such as `origin/feature` checks out that remote ref with a detached HEAD,
-as `git checkout` does.
+as `git checkout` does. Completion uses local remote-tracking refs; it does not fetch.
 
 The binary performs the checkout, if needed, and prints the destination path.
 A child process cannot change its parent shell's directory. Running
@@ -83,10 +83,15 @@ Exit codes: `0` for success, `1` for an operation failure, `2` for invalid usage
 
 ## Branch completion
 
-Type `worktree switch ` and press Tab to complete a branch name in Bash or Zsh.
+Type `git wt ` or `worktree switch ` and press Tab to complete a branch name.
+The `git wt` form uses your existing Git completion setup in Bash or Zsh.
 A prefix such as `worktree switch feature/` limits the suggestions. Completion
-lists sorted, unique branch names from existing worktrees. It excludes detached
-worktrees and branches without a worktree. Outside a repository, it stays silent.
+lists sorted, unique local and remote-tracking branch names, including branches
+without a worktree. Remote branches appear with and without the remote prefix.
+Symbolic remote refs such as `origin/HEAD` are excluded. In a linked worktree,
+completion shows the same branches, but switching requires an existing worktree.
+Detached worktrees have no branch name to complete. Outside a repository,
+completion stays silent.
 
 ## Structure
 
@@ -110,7 +115,7 @@ no existing worktree matches and the current directory is in the main checkout.
 The core owns this rule and uses plain Go types, with no CLI or process dependencies.
 
 Shell completion calls the private `__complete switch <prefix>` CLI protocol.
-The CLI calls `CompleteBranches`, which uses the same `WorktreeLister` port.
+The CLI calls `CompleteBranches`, which uses `WorktreeLister` and `BranchLister`.
 The protocol writes one branch per line and suppresses failure diagnostics.
 
 ## Checks
