@@ -13,5 +13,6 @@ func main() {
 	lister := gitcli.NewLister(".")
 	checkout := gitcli.NewCheckout(".")
 	useCase := worktree.NewSwitchWorktree(lister, checkout, checkout)
-	os.Exit(cliin.RunGitWT(context.Background(), os.Args[1:], useCase, os.Stdout, os.Stderr))
+	completion := worktree.NewCompleteBranches(lister, lister)
+	os.Exit(cliin.RunGitWT(context.Background(), os.Args[1:], useCase, completion, os.Stdout, os.Stderr))
 }

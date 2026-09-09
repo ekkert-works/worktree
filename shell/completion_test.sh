@@ -4,7 +4,6 @@ set -e
 project_directory="$PWD"
 scratch_directory=$(mktemp -d /tmp/worktree-completion.XXXXXX)
 trap 'rm -rf -- "$scratch_directory"' EXIT
-go build -o "$scratch_directory/bin/worktree" ./cmd/worktree
 go build -o "$scratch_directory/bin/git-wt" ./cmd/git-wt
 export PATH="$scratch_directory/bin:$PATH"
 
@@ -28,29 +27,34 @@ git update-ref refs/remotes/origin/remote-only HEAD
 git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/remote-only
 
 if [ -n "${ZSH_VERSION-}" ]; then
-    [ "${_comps[worktree]}" = _worktree_complete_zsh ]
     # Capture candidates at the completion boundary without an interactive ZLE.
     compadd() {
         [ "$1" = -- ]
         shift
         suggestions=("$@")
     }
-else
-    [[ "$(complete -p worktree)" == *"-F _worktree_complete_bash worktree" ]]
 fi
+
+__gitcomp_nl() {
+    suggestions=()
+    local branch
+    while IFS= read -r branch; do
+        [ -n "$branch" ] && suggestions+=("$branch")
+    done <<< "$1"
+    return 0
+}
 
 complete_branches() {
     suggestions=()
     if [ -n "${ZSH_VERSION-}" ]; then
-        words=(worktree switch "$1")
-        CURRENT=3
+        words=(wt "$1")
+        CURRENT=2
         PREFIX="$1"
-        _worktree_complete_zsh
+        _git-wt
     else
-        COMP_WORDS=(worktree switch "$1")
-        COMP_CWORD=2
-        _worktree_complete_bash
-        suggestions=("${COMPREPLY[@]}")
+        cword=2
+        cur="$1"
+        _git_wt
     fi
 }
 
@@ -62,21 +66,11 @@ complete_branches ''
 complete_branches missing
 [ "${#suggestions[@]}" -eq 0 ]
 
-# Both Git completion providers use the same branch list.
-if [ -n "${ZSH_VERSION-}" ]; then
-    words=(wt feature/)
-    CURRENT=2
-    PREFIX=feature/
-    _git-wt
-    [ "${suggestions[*]}" = 'feature/one feature/two' ]
-fi
-__gitcomp_nl() {
-    git_suggestions="$1"
-}
+# The Bash completion provider also supports Zsh setups that use it.
 cword=2
 cur=feature/
 _git_wt
-[ "$git_suggestions" = "$(printf 'feature/one\nfeature/two')" ]
+[ "${suggestions[*]}" = 'feature/one feature/two' ]
 
 # Git finds the standalone command through PATH; it prints the destination.
 [ "$(command git wt feature/one)" = "$(cd "$scratch_directory/one tree" && pwd -P)" ]
@@ -102,7 +96,7 @@ previous_directory="$PWD"
 git wt unused
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = unused ]
-worktree switch remote-only
+git wt remote-only
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = remote-only ]
 [ "$(git rev-parse --abbrev-ref '@{upstream}')" = origin/remote-only ]
