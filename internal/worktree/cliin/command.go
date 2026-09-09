@@ -18,7 +18,20 @@ func Run(ctx context.Context, arguments []string, useCase worktree.SwitchWorktre
 		fmt.Fprintln(stderr, "usage: worktree switch <branch>")
 		return 2
 	}
-	result, err := useCase.Switch(ctx, worktree.SwitchCommand{Branch: arguments[1]})
+	return switchBranch(ctx, arguments[1], useCase, stdout, stderr)
+}
+
+// RunGitWT exposes the same switch use case as a Git external command.
+func RunGitWT(ctx context.Context, arguments []string, useCase worktree.SwitchWorktree, stdout, stderr io.Writer) int {
+	if len(arguments) != 1 {
+		fmt.Fprintln(stderr, "usage: git wt <branch>")
+		return 2
+	}
+	return switchBranch(ctx, arguments[0], useCase, stdout, stderr)
+}
+
+func switchBranch(ctx context.Context, branch string, useCase worktree.SwitchWorktree, stdout, stderr io.Writer) int {
+	result, err := useCase.Switch(ctx, worktree.SwitchCommand{Branch: branch})
 	switch {
 	case errors.Is(err, worktree.ErrInvalidBranch):
 		fmt.Fprintln(stderr, err)
