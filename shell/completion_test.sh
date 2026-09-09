@@ -1,7 +1,6 @@
 # Run with both Bash and Zsh from the repository root.
 set -e
 
-project_directory="$PWD"
 scratch_directory=$(mktemp -d /tmp/worktree-completion.XXXXXX)
 trap 'rm -rf -- "$scratch_directory"' EXIT
 go build -o "$scratch_directory/bin/worktree" ./cmd/worktree
@@ -12,8 +11,10 @@ if [ -n "${ZSH_VERSION-}" ]; then
     chpwd_functions=()
     autoload -Uz compinit
     compinit -u -D
+    eval "$(worktree init zsh)"
+else
+    eval "$(worktree init bash)"
 fi
-source "$project_directory/shell/worktree.sh"
 
 git init -q --initial-branch=main "$scratch_directory/repository"
 cd "$scratch_directory/repository"

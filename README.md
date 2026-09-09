@@ -13,8 +13,7 @@ This installs the `worktree` command.
 
 ### Zsh configuration
 
-Add this block to `~/.zshrc`. Replace the source path with your checkout path.
-Go must already be on `PATH`.
+Add this block to `~/.zshrc`. Go must already be on `PATH`.
 
 ```zsh
 export PATH="${GOBIN:-$(go env GOPATH)/bin}:$PATH"
@@ -22,22 +21,22 @@ export PATH="${GOBIN:-$(go env GOPATH)/bin}:$PATH"
 autoload -Uz compinit
 compinit
 
-source "$HOME/development/ekkert-works/worktree/shell/worktree.sh"
+eval "$(worktree init zsh)"
 ```
 
 If your Zsh framework already runs `compinit`, omit those two lines and put
-the `source` line after the framework setup. Open a new shell to load the config.
+the `eval` line after the framework setup. Open a new shell to load the config.
 
 ### Bash configuration
 
-Add the Go binary directory to `PATH` and source the script in `~/.bashrc`:
+Add the Go binary directory to `PATH` and load the integration in `~/.bashrc`:
 
 ```bash
 export PATH="${GOBIN:-$(go env GOPATH)/bin}:$PATH"
-source "$HOME/development/ekkert-works/worktree/shell/worktree.sh"
+eval "$(worktree init bash)"
 ```
 
-After an update, run the install command again and source the script again.
+After an update, run the install command again.
 
 ## Usage
 
@@ -50,7 +49,7 @@ worktree switch feature/my-change
 Use the branch name of an existing worktree to move to it. The argument is
 a branch name, not a worktree directory path.
 
-The sourced script defines a `worktree` shell function that handles
+The integration defines a `worktree` shell function that handles
 `worktree switch <branch>` and passes other invocations to the binary. This
 function is required to change the shell's directory. Without it, the binary
 prints the destination path only.
@@ -97,10 +96,13 @@ cmd/worktree/main.go                   composition root
 internal/worktree/worktree.go          entity and domain errors
 internal/worktree/switch_worktree.go    use case and inbound/outbound ports
 internal/worktree/complete_branches.go  branch completion use case and inbound port
-internal/worktree/cliin/               CLI inbound adapter
+internal/worktree/cliin/               CLI inbound adapter and shell integration
 internal/worktree/gitcli/              Git outbound adapter
-shell/worktree.sh                      Bash/Zsh directory change and completion
 ```
+
+The `worktree init <bash|zsh>` command prints the Bash or Zsh integration that
+provides the directory change and completion. Load it with
+`eval "$(worktree init <bash|zsh>)"`.
 
 The CLI calls the `SwitchWorktree` inbound port. The use case calls the
 `WorktreeLister` outbound port. The Git adapter implements that port and converts
@@ -119,6 +121,4 @@ The protocol writes one branch per line and suppresses failure diagnostics.
 ```sh
 go test ./...
 go vet ./...
-bash -n shell/worktree.sh
-zsh -n shell/worktree.sh
 ```

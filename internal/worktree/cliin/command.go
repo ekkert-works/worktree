@@ -14,6 +14,9 @@ func Run(ctx context.Context, arguments []string, useCase worktree.SwitchWorktre
 	if len(arguments) > 0 && arguments[0] == "__complete" {
 		return complete(ctx, arguments[1:], completion, stdout)
 	}
+	if len(arguments) > 0 && arguments[0] == "init" {
+		return initShell(arguments[1:], stdout, stderr)
+	}
 	if len(arguments) != 2 || arguments[0] != "switch" {
 		fmt.Fprintln(stderr, "usage: worktree switch <branch>")
 		return 2
