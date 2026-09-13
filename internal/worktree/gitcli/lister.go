@@ -2,8 +2,6 @@ package gitcli
 
 import (
 	"context"
-	"errors"
-	"os/exec"
 	"strings"
 
 	"github.com/ekkert-works/worktree/internal/worktree"
@@ -16,16 +14,12 @@ func NewLister(directory string) *Lister {
 }
 
 func (l *Lister) List(ctx context.Context) ([]worktree.Worktree, error) {
-	command := exec.CommandContext(ctx, "git", "worktree", "list", "--porcelain", "-z")
-	command.Dir = l.directory
-	output, err := command.Output()
-	if errors.Is(err, exec.ErrNotFound) {
-		return nil, worktree.ErrUnavailable
-	}
+	output, err := runGit(ctx, l.directory, worktree.ErrReadFailure,
+		"worktree", "list", "--porcelain", "-z")
 	if err != nil {
-		return nil, worktree.ErrReadFailure
+		return nil, err
 	}
-	return parse(string(output))
+	return parse(output)
 }
 
 func parse(output string) ([]worktree.Worktree, error) {
