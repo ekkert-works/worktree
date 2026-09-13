@@ -67,10 +67,6 @@ _worktree_complete_zsh() {
         return 0
     fi
 
-    _worktree_candidates_zsh
-}
-
-_worktree_candidates_zsh() {
     local output
     local -a branches
     output="$(command worktree __complete switch "$PREFIX" 2>/dev/null)" || return 0
