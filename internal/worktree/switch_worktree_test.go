@@ -53,7 +53,7 @@ func TestSwitch(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			lister := &fakeLister{worktrees: test.worktrees, err: test.listError}
 			checkout := &fakeCheckout{checkoutError: worktree.ErrCheckoutFailure}
-			result, err := worktree.NewSwitchWorktree(lister, checkout, checkout).Switch(context.Background(), worktree.SwitchCommand{Branch: test.branch})
+			result, err := worktree.NewSwitchWorktree(lister, checkout).Switch(context.Background(), worktree.SwitchCommand{Branch: test.branch})
 			if !errors.Is(err, test.wantError) || result.Path != test.wantPath {
 				t.Fatalf("got %+v, %v; want path %q, %v", result, err, test.wantPath, test.wantError)
 			}

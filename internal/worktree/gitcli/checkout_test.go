@@ -34,7 +34,7 @@ func newRepository(t *testing.T) string {
 
 func switchBranch(directory, branch string) (worktree.SwitchResult, error) {
 	checkout := NewCheckout(directory)
-	useCase := worktree.NewSwitchWorktree(NewLister(directory), checkout, checkout)
+	useCase := worktree.NewSwitchWorktree(NewLister(directory), checkout)
 	return useCase.Switch(context.Background(), worktree.SwitchCommand{Branch: branch})
 }
 

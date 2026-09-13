@@ -24,11 +24,8 @@ type CheckoutLocation struct {
 	Linked bool
 }
 
-type CheckoutLocationReader interface {
+type Checkout interface {
 	ReadLocation(ctx context.Context) (CheckoutLocation, error)
-}
-
-type BranchCheckout interface {
 	Checkout(ctx context.Context, branch string) error
 }
 
@@ -41,12 +38,11 @@ type SwitchResult struct{ Path string }
 
 type switchWorktree struct {
 	lister   WorktreeLister
-	location CheckoutLocationReader
-	checkout BranchCheckout
+	checkout Checkout
 }
 
-func NewSwitchWorktree(lister WorktreeLister, location CheckoutLocationReader, checkout BranchCheckout) SwitchWorktree {
-	return switchWorktree{lister: lister, location: location, checkout: checkout}
+func NewSwitchWorktree(lister WorktreeLister, checkout Checkout) SwitchWorktree {
+	return switchWorktree{lister: lister, checkout: checkout}
 }
 
 func (u switchWorktree) Switch(ctx context.Context, command SwitchCommand) (SwitchResult, error) {
@@ -70,7 +66,7 @@ func (u switchWorktree) Switch(ctx context.Context, command SwitchCommand) (Swit
 	if result.Path != "" {
 		return result, nil
 	}
-	location, err := u.location.ReadLocation(ctx)
+	location, err := u.checkout.ReadLocation(ctx)
 	if err != nil {
 		return SwitchResult{}, err
 	}
