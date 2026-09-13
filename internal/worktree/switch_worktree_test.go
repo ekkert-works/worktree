@@ -10,13 +10,19 @@ import (
 
 type fakeLister struct {
 	worktrees []worktree.Worktree
+	branches  []string
 	err       error
+	branchErr error
 	calls     int
 }
 
 func (f *fakeLister) List(context.Context) ([]worktree.Worktree, error) {
 	f.calls++
 	return f.worktrees, f.err
+}
+
+func (f *fakeLister) ListBranches(context.Context) ([]string, error) {
+	return f.branches, f.branchErr
 }
 
 func TestSwitch(t *testing.T) {

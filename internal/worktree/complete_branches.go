@@ -14,16 +14,16 @@ type CompleteCommand struct{ Prefix string }
 type CompleteResult struct{ Branches []string }
 
 type BranchLister interface {
+	WorktreeLister
 	ListBranches(ctx context.Context) ([]string, error)
 }
 
 type completeBranches struct {
-	lister   WorktreeLister
-	branches BranchLister
+	lister BranchLister
 }
 
-func NewCompleteBranches(lister WorktreeLister, branches BranchLister) CompleteBranches {
-	return completeBranches{lister: lister, branches: branches}
+func NewCompleteBranches(lister BranchLister) CompleteBranches {
+	return completeBranches{lister: lister}
 }
 
 func (u completeBranches) Complete(ctx context.Context, command CompleteCommand) (CompleteResult, error) {
@@ -31,7 +31,7 @@ func (u completeBranches) Complete(ctx context.Context, command CompleteCommand)
 	if err != nil {
 		return CompleteResult{}, err
 	}
-	candidates, err := u.branches.ListBranches(ctx)
+	candidates, err := u.lister.ListBranches(ctx)
 	if err != nil {
 		return CompleteResult{}, err
 	}

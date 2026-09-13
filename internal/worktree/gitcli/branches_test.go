@@ -17,7 +17,7 @@ func TestCompleteLocalAndRemoteBranches(t *testing.T) {
 	gitOutput(t, directory, "update-ref", "refs/remotes/origin/remote-only", "HEAD")
 	gitOutput(t, directory, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/remote-only")
 	lister := NewLister(directory)
-	completion := worktree.NewCompleteBranches(lister, lister)
+	completion := worktree.NewCompleteBranches(lister)
 	result, err := completion.Complete(context.Background(), worktree.CompleteCommand{})
 	want := []string{"main", "origin/remote-only", "remote-only", "unused"}
 	if err != nil || !slices.Equal(result.Branches, want) {
