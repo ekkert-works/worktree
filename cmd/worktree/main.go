@@ -12,7 +12,7 @@ import (
 func main() {
 	lister := gitcli.NewLister(".")
 	checkout := gitcli.NewCheckout(".")
-	useCase := worktree.NewSwitchWorktree(lister, checkout, checkout)
+	useCase := worktree.NewSwitchWorktree(lister, checkout)
 	completion := worktree.NewCompleteBranches(lister)
 	os.Exit(cliin.Run(context.Background(), os.Args[1:], useCase, completion, os.Stdout, os.Stderr))
 }

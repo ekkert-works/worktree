@@ -48,7 +48,7 @@ func TestCheckoutWithoutWorktree(t *testing.T) {
 				locationError: test.locationError,
 				checkoutError: test.checkoutError,
 			}
-			useCase := worktree.NewSwitchWorktree(&fakeLister{}, checkout, checkout)
+			useCase := worktree.NewSwitchWorktree(&fakeLister{}, checkout)
 			result, err := useCase.Switch(context.Background(), worktree.SwitchCommand{Branch: "feature"})
 			if !errors.Is(err, test.wantError) || checkout.checkoutCalls != test.wantCalls {
 				t.Fatalf("got %+v, %v, %d checkout calls", result, err, checkout.checkoutCalls)
