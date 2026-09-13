@@ -12,16 +12,12 @@ import (
 
 func TestParse(t *testing.T) {
 	output := "worktree /bare\x00bare\x00\x00worktree /with spaces\nand newline\x00branch refs/heads/feature\x00\x00worktree /detached\x00detached\x00\x00"
-	result, err := parse(output)
-	if err != nil {
-		t.Fatal(err)
-	}
+	result := parse(output)
 	if len(result) != 2 || result[0].Path() != "/with spaces\nand newline" || !result[0].MatchesBranch("feature") {
 		t.Fatalf("unexpected worktrees: %+v", result)
 	}
-	_, err = parse("branch refs/heads/feature\x00\x00")
-	if !errors.Is(err, worktree.ErrReadFailure) {
-		t.Fatalf("got %v", err)
+	if pathless := parse("branch refs/heads/feature\x00\x00"); len(pathless) != 0 {
+		t.Fatalf("pathless record not skipped: %+v", pathless)
 	}
 }
 
