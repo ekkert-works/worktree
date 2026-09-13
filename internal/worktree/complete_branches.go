@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-type CompleteBranches interface {
-	Complete(ctx context.Context, command CompleteCommand) (CompleteResult, error)
-}
-
 type CompleteCommand struct{ Prefix string }
 type CompleteResult struct{ Branches []string }
 
@@ -18,15 +14,15 @@ type BranchLister interface {
 	ListBranches(ctx context.Context) ([]string, error)
 }
 
-type completeBranches struct {
+type CompleteBranches struct {
 	lister BranchLister
 }
 
 func NewCompleteBranches(lister BranchLister) CompleteBranches {
-	return completeBranches{lister: lister}
+	return CompleteBranches{lister: lister}
 }
 
-func (u completeBranches) Complete(ctx context.Context, command CompleteCommand) (CompleteResult, error) {
+func (u CompleteBranches) Complete(ctx context.Context, command CompleteCommand) (CompleteResult, error) {
 	worktrees, err := u.lister.List(ctx)
 	if err != nil {
 		return CompleteResult{}, err
