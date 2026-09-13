@@ -15,5 +15,5 @@ func (w Worktree) Path() string { return w.path }
 func (w Worktree) Branch() string { return w.branch }
 
 func (w Worktree) MatchesBranch(branch string) bool {
-	return branch != "" && w.branch == branch
+	return w.branch == branch
 }
