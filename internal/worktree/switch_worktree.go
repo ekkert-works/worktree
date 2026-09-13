@@ -29,23 +29,19 @@ type Checkout interface {
 	Checkout(ctx context.Context, branch string) error
 }
 
-type SwitchWorktree interface {
-	Switch(ctx context.Context, command SwitchCommand) (SwitchResult, error)
-}
-
 type SwitchCommand struct{ Branch string }
 type SwitchResult struct{ Path string }
 
-type switchWorktree struct {
+type SwitchWorktree struct {
 	lister   WorktreeLister
 	checkout Checkout
 }
 
 func NewSwitchWorktree(lister WorktreeLister, checkout Checkout) SwitchWorktree {
-	return switchWorktree{lister: lister, checkout: checkout}
+	return SwitchWorktree{lister: lister, checkout: checkout}
 }
 
-func (u switchWorktree) Switch(ctx context.Context, command SwitchCommand) (SwitchResult, error) {
+func (u SwitchWorktree) Switch(ctx context.Context, command SwitchCommand) (SwitchResult, error) {
 	if command.Branch == "" || strings.HasPrefix(command.Branch, "-") {
 		return SwitchResult{}, ErrInvalidBranch
 	}

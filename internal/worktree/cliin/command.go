@@ -9,8 +9,16 @@ import (
 	"github.com/ekkert-works/worktree/internal/worktree"
 )
 
+type Switcher interface {
+	Switch(ctx context.Context, command worktree.SwitchCommand) (worktree.SwitchResult, error)
+}
+
+type Completer interface {
+	Complete(ctx context.Context, command worktree.CompleteCommand) (worktree.CompleteResult, error)
+}
+
 // Run writes destinations or completion candidates to stdout.
-func Run(ctx context.Context, arguments []string, useCase worktree.SwitchWorktree, completion worktree.CompleteBranches, stdout, stderr io.Writer) int {
+func Run(ctx context.Context, arguments []string, useCase Switcher, completion Completer, stdout, stderr io.Writer) int {
 	if len(arguments) > 0 && arguments[0] == "__complete" {
 		return complete(ctx, arguments[1:], completion, stdout)
 	}
@@ -24,7 +32,7 @@ func Run(ctx context.Context, arguments []string, useCase worktree.SwitchWorktre
 	return switchBranch(ctx, arguments[1], useCase, stdout, stderr)
 }
 
-func switchBranch(ctx context.Context, branch string, useCase worktree.SwitchWorktree, stdout, stderr io.Writer) int {
+func switchBranch(ctx context.Context, branch string, useCase Switcher, stdout, stderr io.Writer) int {
 	result, err := useCase.Switch(ctx, worktree.SwitchCommand{Branch: branch})
 	switch {
 	case errors.Is(err, worktree.ErrInvalidBranch):
@@ -42,7 +50,7 @@ func switchBranch(ctx context.Context, branch string, useCase worktree.SwitchWor
 }
 
 // Completion is a private shell protocol: one branch per line, no diagnostics.
-func complete(ctx context.Context, arguments []string, useCase worktree.CompleteBranches, stdout io.Writer) int {
+func complete(ctx context.Context, arguments []string, useCase Completer, stdout io.Writer) int {
 	if len(arguments) != 2 || arguments[0] != "switch" {
 		return 2
 	}
