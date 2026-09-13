@@ -19,10 +19,10 @@ func (l *Lister) List(ctx context.Context) ([]worktree.Worktree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return parse(output)
+	return parse(output), nil
 }
 
-func parse(output string) ([]worktree.Worktree, error) {
+func parse(output string) []worktree.Worktree {
 	var result []worktree.Worktree
 	for _, record := range strings.Split(output, "\x00\x00") {
 		if record == "" {
@@ -40,14 +40,10 @@ func parse(output string) ([]worktree.Worktree, error) {
 				bare = true
 			}
 		}
-		if bare {
+		if bare || path == "" {
 			continue
 		}
-		candidate, err := worktree.NewWorktree(path, branch)
-		if err != nil {
-			return nil, worktree.ErrReadFailure
-		}
-		result = append(result, candidate)
+		result = append(result, worktree.NewWorktree(path, branch))
 	}
-	return result, nil
+	return result
 }

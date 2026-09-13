@@ -26,14 +26,8 @@ func (f *fakeLister) ListBranches(context.Context) ([]string, error) {
 }
 
 func TestSwitch(t *testing.T) {
-	feature, err := worktree.NewWorktree("/repo with spaces", "feature")
-	if err != nil {
-		t.Fatal(err)
-	}
-	detached, err := worktree.NewWorktree("/detached", "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	feature := worktree.NewWorktree("/repo with spaces", "feature")
+	detached := worktree.NewWorktree("/detached", "")
 	for _, test := range []struct {
 		name      string
 		branch    string
@@ -64,12 +58,5 @@ func TestSwitch(t *testing.T) {
 				t.Fatal("invalid input reached lister")
 			}
 		})
-	}
-}
-
-func TestRejectEmptyPath(t *testing.T) {
-	_, err := worktree.NewWorktree("", "feature")
-	if !errors.Is(err, worktree.ErrInvalidWorktree) {
-		t.Fatalf("got %v", err)
 	}
 }

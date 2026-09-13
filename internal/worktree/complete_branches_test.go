@@ -10,10 +10,7 @@ import (
 )
 
 func TestCompleteIncludesBranchesWithoutWorktrees(t *testing.T) {
-	main, err := worktree.NewWorktree("/repository", "main")
-	if err != nil {
-		t.Fatal(err)
-	}
+	main := worktree.NewWorktree("/repository", "main")
 	lister := &fakeLister{
 		worktrees: []worktree.Worktree{main},
 		branches:  []string{"unused", "origin/remote", "remote", "main"},
@@ -34,11 +31,7 @@ func TestCompleteIncludesBranchesWithoutWorktrees(t *testing.T) {
 func TestCompleteBranches(t *testing.T) {
 	var candidates []worktree.Worktree
 	for _, branch := range []string{"main", "feature/two", "", "feature/one", "main"} {
-		candidate, err := worktree.NewWorktree("/repository/"+branch, branch)
-		if err != nil {
-			t.Fatal(err)
-		}
-		candidates = append(candidates, candidate)
+		candidates = append(candidates, worktree.NewWorktree("/repository/"+branch, branch))
 	}
 	for _, test := range []struct {
 		name   string
