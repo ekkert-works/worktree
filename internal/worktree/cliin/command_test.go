@@ -14,6 +14,12 @@ func (s stubSwitch) Switch(context.Context, worktree.SwitchCommand) (worktree.Sw
 	return worktree.SwitchResult{Path: "/feature tree"}, s.err
 }
 
+type stubAdd struct{ err error }
+
+func (s stubAdd) Add(context.Context, worktree.AddCommand) (worktree.AddResult, error) {
+	return worktree.AddResult{Path: "/feature tree"}, s.err
+}
+
 type stubCompletion struct {
 	command  worktree.CompleteCommand
 	branches []string
@@ -43,7 +49,7 @@ func TestCompletionProtocol(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			completion := &stubCompletion{branches: test.branches, err: test.err}
 			var stdout, stderr bytes.Buffer
-			code := Run(context.Background(), test.arguments, nil, completion, &stdout, &stderr)
+			code := Run(context.Background(), test.arguments, nil, nil, completion, &stdout, &stderr)
 			if code != test.code || stdout.String() != test.output || stderr.Len() != 0 {
 				t.Fatalf("got code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 			}
@@ -63,16 +69,19 @@ func TestRun(t *testing.T) {
 		output    string
 	}{
 		{name: "switch", arguments: []string{"switch", "feature"}, output: "/feature tree\n"},
+		{name: "add", arguments: []string{"add", "feature"}, output: "/feature tree\n"},
 		{name: "usage", code: 2},
-		{name: "unknown command", arguments: []string{"add", "feature"}, code: 2},
+		{name: "unknown command", arguments: []string{"remove", "feature"}, code: 2},
 		{name: "invalid branch", arguments: []string{"switch", ""}, err: worktree.ErrInvalidBranch, code: 2},
+		{name: "add invalid branch", arguments: []string{"add", ""}, err: worktree.ErrInvalidBranch, code: 2},
 		{name: "checkout failure", arguments: []string{"switch", "missing"}, err: worktree.ErrCheckoutFailure, code: 1},
+		{name: "add failure", arguments: []string{"add", "missing"}, err: worktree.ErrAddFailure, code: 1},
 		{name: "linked worktree", arguments: []string{"switch", "unused"}, err: worktree.ErrLinkedCheckout, code: 1},
 		{name: "git failure", arguments: []string{"switch", "feature"}, err: worktree.ErrReadFailure, code: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			code := Run(context.Background(), test.arguments, stubSwitch{err: test.err}, nil, &stdout, &stderr)
+			code := Run(context.Background(), test.arguments, stubSwitch{err: test.err}, stubAdd{err: test.err}, nil, &stdout, &stderr)
 			if code != test.code || stdout.String() != test.output {
 				t.Fatalf("got code %d, output %q", code, stdout.String())
 			}

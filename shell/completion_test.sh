@@ -95,9 +95,14 @@ worktree switch remote-only
 if worktree switch > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
     exit 1
 fi
-[ "$(cat "$scratch_directory/stderr")" = 'usage: worktree switch <branch>' ]
+[ "$(cat "$scratch_directory/stderr")" = 'usage: worktree <switch|add> <branch>' ]
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = remote-only ]
+
+# Add creates a worktree for an existing branch and changes into it.
+worktree add unused
+[ "$(pwd -P)" = "$(cd "$scratch_directory/repository.worktrees/unused" && pwd -P)" ]
+[ "$(git branch --show-current)" = unused ]
 
 # Failures stay silent and must not fall back to filenames.
 cd "$scratch_directory"

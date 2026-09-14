@@ -1,6 +1,7 @@
 # Worktree
 
-A small Go CLI to switch to an existing Git worktree or check out a branch.
+A small Go CLI to switch to an existing Git worktree, check out a branch, or
+add a worktree for an existing branch.
 Requires Go 1.26 and Git on `PATH`.
 
 ## Installation
@@ -72,6 +73,24 @@ A child process cannot change its parent shell's directory. Running
 `command worktree switch <branch>` can change the checked-out branch;
 it is not a read-only path lookup.
 
+## Add a worktree
+
+Create a new worktree for an existing branch and move into it:
+
+```sh
+worktree add feature/my-change
+```
+
+The command runs `git worktree add` and places the new worktree at
+`<main-checkout>.worktrees/<branch>`. For a main checkout at `/dev/worktree`,
+branch `feature/my-change` becomes `/dev/worktree.worktrees/feature/my-change`.
+The branch path structure is kept.
+
+The branch must already exist. Git rejects a branch that has no ref or is
+already checked out in another worktree. The shell function changes into the
+new worktree, the same as `switch`. The command works from the main checkout
+or a linked worktree. It supports only standard repositories, not bare ones.
+
 Paths with spaces are supported. Failed operations leave the current directory
 unchanged. Detached worktrees cannot be selected by branch. The command does not
 create or remove worktree directories.
@@ -95,6 +114,7 @@ completion stays silent.
 cmd/worktree/main.go                   composition root
 internal/worktree/worktree.go          entity and domain errors
 internal/worktree/switch_worktree.go    use case and inbound/outbound ports
+internal/worktree/add_worktree.go       add-worktree use case and outbound ports
 internal/worktree/complete_branches.go  branch completion use case and inbound port
 internal/worktree/cliin/               CLI inbound adapter and shell integration
 internal/worktree/gitcli/              Git outbound adapter
