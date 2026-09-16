@@ -75,7 +75,7 @@ it is not a read-only path lookup.
 
 ## Add a worktree
 
-Create a new worktree for an existing branch and move into it:
+Create a worktree for a branch and move into it:
 
 ```sh
 worktree add feature/my-change
@@ -86,10 +86,12 @@ The command runs `git worktree add` and places the new worktree at
 branch `feature/my-change` becomes `/dev/worktree.worktrees/feature/my-change`.
 The branch path structure is kept.
 
-The branch must already exist. Git rejects a branch that has no ref or is
-already checked out in another worktree. The shell function changes into the
-new worktree, the same as `switch`. The command works from the main checkout
-or a linked worktree. It supports only standard repositories, not bare ones.
+An existing branch is checked out. A branch with no local ref is created from
+`HEAD`. A name that exists only as a remote-tracking branch counts as new and
+does not set up tracking. Git rejects a branch that is already checked out in
+another worktree. The shell function changes into the new worktree, the same as
+`switch`. The command works from the main checkout or a linked worktree. It
+supports only standard repositories, not bare ones.
 
 Paths with spaces are supported. Failed operations leave the current directory
 unchanged. Detached worktrees cannot be selected by branch. The command does not

@@ -28,9 +28,9 @@ func NewAddWorktree(main MainCheckoutReader, adder WorktreeAdder) AddWorktree {
 	return AddWorktree{main: main, adder: adder}
 }
 
-// Add creates a worktree for an existing branch under <main>.worktrees/<branch>
-// and returns its path. Git rejects a branch that does not exist or is already
-// checked out.
+// Add creates a worktree under <main>.worktrees/<branch> and returns its path.
+// The adapter checks out an existing branch or creates a new one. Git rejects
+// a branch that is already checked out in another worktree.
 func (u AddWorktree) Add(ctx context.Context, command AddCommand) (AddResult, error) {
 	if command.Branch == "" || strings.HasPrefix(command.Branch, "-") {
 		return AddResult{}, ErrInvalidBranch

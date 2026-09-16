@@ -33,6 +33,15 @@ func TestAddCreatesWorktreeForExistingBranch(t *testing.T) {
 	if err := adder.Add(context.Background(), root+".worktrees/again", "feature/x"); !errors.Is(err, worktree.ErrAddFailure) {
 		t.Fatalf("re-add: got %v, want ErrAddFailure", err)
 	}
+
+	// A name with no local ref creates the branch from HEAD.
+	fresh := root + ".worktrees/new"
+	if err := adder.Add(context.Background(), fresh, "brand-new"); err != nil {
+		t.Fatalf("add new branch: %v", err)
+	}
+	if head := gitOutput(t, fresh, "branch", "--show-current"); head != "brand-new" {
+		t.Fatalf("got branch %q in new worktree", head)
+	}
 }
 
 func TestAddAdapterTranslatesFailures(t *testing.T) {
