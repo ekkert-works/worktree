@@ -11,7 +11,6 @@ var (
 	ErrAmbiguous       = errors.New("worktree: multiple worktrees for branch")
 	ErrUnavailable     = errors.New("worktree: git is unavailable")
 	ErrReadFailure     = errors.New("worktree: cannot read worktrees")
-	ErrLinkedCheckout  = errors.New("worktree: cannot check out a branch in a linked worktree; switch from the main checkout")
 	ErrCheckoutFailure = errors.New("worktree: cannot check out branch; check the branch name and local changes")
 )
 
@@ -19,14 +18,10 @@ type WorktreeLister interface {
 	List(ctx context.Context) ([]Worktree, error)
 }
 
-type CheckoutLocation struct {
-	Path   string
-	Linked bool
-}
-
 type Checkout interface {
-	ReadLocation(ctx context.Context) (CheckoutLocation, error)
-	Checkout(ctx context.Context, branch string) error
+	// MainCheckout reports the absolute path of the repository's main checkout.
+	MainCheckout(ctx context.Context) (string, error)
+	Checkout(ctx context.Context, directory, branch string) error
 }
 
 type SwitchCommand struct{ Branch string }
@@ -54,17 +49,17 @@ func (u SwitchWorktree) Switch(ctx context.Context, command SwitchCommand) (Swit
 	} else if matched {
 		return SwitchResult{Path: path}, nil
 	}
-	location, err := u.checkout.ReadLocation(ctx)
+	// No worktree holds the branch, so check it out in the main checkout. From a
+	// linked worktree this moves to the main checkout instead of changing the
+	// current worktree's branch.
+	mainCheckout, err := u.checkout.MainCheckout(ctx)
 	if err != nil {
 		return SwitchResult{}, err
 	}
-	if location.Linked {
-		return SwitchResult{}, ErrLinkedCheckout
-	}
-	if err := u.checkout.Checkout(ctx, command.Branch); err != nil {
+	if err := u.checkout.Checkout(ctx, mainCheckout, command.Branch); err != nil {
 		return SwitchResult{}, err
 	}
-	return SwitchResult{Path: location.Path}, nil
+	return SwitchResult{Path: mainCheckout}, nil
 }
 
 // resolveWorktree finds the worktree to switch to. An exact branch match wins;

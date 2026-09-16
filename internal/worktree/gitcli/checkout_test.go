@@ -44,9 +44,13 @@ func TestCheckoutLocalAndRemoteBranches(t *testing.T) {
 	gitOutput(t, directory, "remote", "add", "origin", directory)
 	gitOutput(t, directory, "update-ref", "refs/remotes/origin/remote-only", "HEAD")
 	gitOutput(t, directory, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/remote-only")
+	want, err := filepath.EvalSymlinks(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, branch := range []string{"unused", "remote-only", "origin/remote-only"} {
 		destination, err := switchBranch(directory, branch)
-		if err != nil || destination.Path != directory {
+		if err != nil || destination.Path != want {
 			t.Fatalf("switch %s: %+v, %v", branch, destination, err)
 		}
 		if branch == "origin/remote-only" {
@@ -64,9 +68,13 @@ func TestCheckoutLocalAndRemoteBranches(t *testing.T) {
 	}
 }
 
-func TestLinkedWorktreesNeverCheckout(t *testing.T) {
+func TestLinkedWorktreeChecksOutInMainCheckout(t *testing.T) {
 	directory := newRepository(t)
 	gitOutput(t, directory, "branch", "unused")
+	want, err := filepath.EvalSymlinks(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, detached := range []bool{false, true} {
 		name := "attached"
 		arguments := []string{"worktree", "add", "-b", "linked"}
@@ -80,18 +88,19 @@ func TestLinkedWorktreesNeverCheckout(t *testing.T) {
 		if err := os.Mkdir(subdirectory, 0755); err != nil {
 			t.Fatal(err)
 		}
-		headBefore := gitOutput(t, linked, "rev-parse", "--abbrev-ref", "HEAD")
+		// A branch with no worktree is checked out in the main checkout, and the
+		// linked worktree stays on its own branch.
+		gitOutput(t, directory, "checkout", "main", "--")
+		linkedHeadBefore := gitOutput(t, linked, "rev-parse", "--abbrev-ref", "HEAD")
 		result, err := switchBranch(subdirectory, "unused")
-		if !errors.Is(err, worktree.ErrLinkedCheckout) || result.Path != "" {
-			t.Fatalf("%s: got %+v, %v", name, result, err)
+		if err != nil || result.Path != want {
+			t.Fatalf("%s: switch to unused: %+v, %v", name, result, err)
 		}
-		if headAfter := gitOutput(t, linked, "rev-parse", "--abbrev-ref", "HEAD"); headAfter != headBefore {
-			t.Fatalf("%s branch changed from %s to %s", name, headBefore, headAfter)
+		if head := gitOutput(t, directory, "branch", "--show-current"); head != "unused" {
+			t.Fatalf("%s: main checkout on %q, want unused", name, head)
 		}
-		result, err = switchBranch(subdirectory, "main")
-		want, pathError := filepath.EvalSymlinks(directory)
-		if err != nil || pathError != nil || result.Path != want {
-			t.Fatalf("switch to existing main worktree: %+v, %v", result, err)
+		if headAfter := gitOutput(t, linked, "rev-parse", "--abbrev-ref", "HEAD"); headAfter != linkedHeadBefore {
+			t.Fatalf("%s: linked worktree changed from %s to %s", name, linkedHeadBefore, headAfter)
 		}
 	}
 }
@@ -139,10 +148,10 @@ func TestCheckoutAdapterTranslatesFailures(t *testing.T) {
 			if scenario.missingGit {
 				t.Setenv("PATH", directory)
 			}
-			_, locationError := NewCheckout(directory).ReadLocation(context.Background())
-			checkoutError := NewCheckout(directory).Checkout(context.Background(), "main")
+			_, mainError := NewCheckout(directory).MainCheckout(context.Background())
+			checkoutError := NewCheckout(directory).Checkout(context.Background(), directory, "main")
 			for _, test := range []struct{ err, want error }{
-				{locationError, worktree.ErrReadFailure},
+				{mainError, worktree.ErrReadFailure},
 				{checkoutError, worktree.ErrCheckoutFailure},
 			} {
 				want := test.want

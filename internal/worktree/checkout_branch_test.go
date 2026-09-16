@@ -9,21 +9,23 @@ import (
 )
 
 type fakeCheckout struct {
-	location      worktree.CheckoutLocation
-	locationError error
+	mainCheckout  string
+	mainError     error
 	checkoutError error
-	locationCalls int
+	mainCalls     int
 	checkoutCalls int
+	directory     string
 	branch        string
 }
 
-func (f *fakeCheckout) ReadLocation(context.Context) (worktree.CheckoutLocation, error) {
-	f.locationCalls++
-	return f.location, f.locationError
+func (f *fakeCheckout) MainCheckout(context.Context) (string, error) {
+	f.mainCalls++
+	return f.mainCheckout, f.mainError
 }
 
-func (f *fakeCheckout) Checkout(_ context.Context, branch string) error {
+func (f *fakeCheckout) Checkout(_ context.Context, directory, branch string) error {
 	f.checkoutCalls++
+	f.directory = directory
 	f.branch = branch
 	return f.checkoutError
 }
@@ -31,21 +33,19 @@ func (f *fakeCheckout) Checkout(_ context.Context, branch string) error {
 func TestCheckoutWithoutWorktree(t *testing.T) {
 	for _, test := range []struct {
 		name          string
-		linked        bool
-		locationError error
+		mainError     error
 		checkoutError error
 		wantError     error
 		wantCalls     int
 	}{
-		{name: "main checkout", wantCalls: 1},
-		{name: "linked worktree", linked: true, wantError: worktree.ErrLinkedCheckout},
-		{name: "location failure", locationError: worktree.ErrReadFailure, wantError: worktree.ErrReadFailure},
+		{name: "checks out in main checkout", wantCalls: 1},
+		{name: "main lookup failure", mainError: worktree.ErrReadFailure, wantError: worktree.ErrReadFailure},
 		{name: "checkout failure", checkoutError: worktree.ErrCheckoutFailure, wantError: worktree.ErrCheckoutFailure, wantCalls: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			checkout := &fakeCheckout{
-				location:      worktree.CheckoutLocation{Path: "/main/subdirectory", Linked: test.linked},
-				locationError: test.locationError,
+				mainCheckout:  "/main",
+				mainError:     test.mainError,
 				checkoutError: test.checkoutError,
 			}
 			useCase := worktree.NewSwitchWorktree(&fakeLister{}, checkout)
@@ -53,8 +53,8 @@ func TestCheckoutWithoutWorktree(t *testing.T) {
 			if !errors.Is(err, test.wantError) || checkout.checkoutCalls != test.wantCalls {
 				t.Fatalf("got %+v, %v, %d checkout calls", result, err, checkout.checkoutCalls)
 			}
-			if err == nil && (result.Path != checkout.location.Path || checkout.branch != "feature") {
-				t.Fatalf("got %+v, checked out %q", result, checkout.branch)
+			if err == nil && (result.Path != checkout.mainCheckout || checkout.directory != checkout.mainCheckout || checkout.branch != "feature") {
+				t.Fatalf("got %+v, checked out %q in %q", result, checkout.branch, checkout.directory)
 			}
 			if err != nil && result.Path != "" {
 				t.Fatalf("failed checkout returned destination %q", result.Path)

@@ -59,9 +59,10 @@ If the branch has an existing worktree, the shell function changes to that
 directory. The branch name must match exactly.
 
 If the branch has no worktree, the command runs `git checkout <branch> --` in
-the current directory. This is allowed only in the main checkout. In a linked
-worktree, including a detached worktree, the command returns an error and keeps
-the current branch. Switching to another existing worktree is still allowed.
+the main checkout and moves you there. From a linked worktree, including a
+detached worktree, this leaves the current worktree's branch unchanged and
+switches to the main checkout. Switching to another existing worktree is still
+allowed.
 
 Git applies its normal checks for local changes and remote branch selection.
 An unqualified remote branch name can create a local tracking branch. A qualified
@@ -109,8 +110,8 @@ A prefix such as `worktree switch feature/` limits the suggestions. Completion
 lists sorted, unique local and remote-tracking branch names, including branches
 without a worktree. Remote branches appear with and without the remote prefix.
 Symbolic remote refs such as `origin/HEAD` are excluded. In a linked worktree,
-completion shows the same branches, but switching requires an existing worktree.
-Detached worktrees have no branch name to complete. Outside a repository,
+completion shows the same branches; a branch with no worktree is checked out in
+the main checkout. Detached worktrees have no branch name to complete. Outside a repository,
 completion stays silent.
 
 ## Structure
@@ -132,9 +133,9 @@ provides the directory change and completion. Load it with
 The CLI calls the `SwitchWorktree` inbound port. The use case calls the
 `WorktreeLister` outbound port. The Git adapter implements that port and converts
 process and parsing failures to use-case errors. Only `main` wires the adapters.
-The switch use case also calls `CheckoutLocationReader` to check whether the
-current directory is in a linked worktree. It calls `BranchCheckout` only when
-no existing worktree matches and the current directory is in the main checkout.
+When no existing worktree matches, the switch use case calls `Checkout` to find
+the main checkout and check the branch out there, so a switch from a linked
+worktree moves to the main checkout instead of changing the current worktree.
 The core owns this rule and uses plain Go types, with no CLI or process dependencies.
 
 Shell completion calls the private `worktree __complete switch <prefix>` CLI protocol.

@@ -76,7 +76,6 @@ func TestRun(t *testing.T) {
 		{name: "add invalid branch", arguments: []string{"add", ""}, err: worktree.ErrInvalidBranch, code: 2},
 		{name: "checkout failure", arguments: []string{"switch", "missing"}, err: worktree.ErrCheckoutFailure, code: 1},
 		{name: "add failure", arguments: []string{"add", "missing"}, err: worktree.ErrAddFailure, code: 1},
-		{name: "linked worktree", arguments: []string{"switch", "unused"}, err: worktree.ErrLinkedCheckout, code: 1},
 		{name: "git failure", arguments: []string{"switch", "feature"}, err: worktree.ErrReadFailure, code: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {

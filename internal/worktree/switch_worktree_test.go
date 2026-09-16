@@ -53,7 +53,7 @@ func TestSwitch(t *testing.T) {
 			if !errors.Is(err, test.wantError) || result.Path != test.wantPath {
 				t.Fatalf("got %+v, %v; want path %q, %v", result, err, test.wantPath, test.wantError)
 			}
-			if test.wantError != worktree.ErrCheckoutFailure && (checkout.locationCalls != 0 || checkout.checkoutCalls != 0) {
+			if test.wantError != worktree.ErrCheckoutFailure && (checkout.mainCalls != 0 || checkout.checkoutCalls != 0) {
 				t.Fatal("checkout reached before resolving existing worktrees")
 			}
 			if test.wantError == worktree.ErrInvalidBranch && lister.calls != 0 {

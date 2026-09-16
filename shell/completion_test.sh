@@ -70,22 +70,16 @@ worktree switch feature/one
 complete_branches feature/t
 [ "${suggestions[*]}" = feature/two ]
 
-# A linked worktree must keep its branch when the target has no worktree.
-previous_directory="$PWD"
-if worktree switch unused > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
-    exit 1
-fi
-[ "$PWD" = "$previous_directory" ]
-[ "$(git branch --show-current)" = feature/one ]
-[ ! -s "$scratch_directory/stdout" ]
-[[ "$(cat "$scratch_directory/stderr")" == *'linked worktree'* ]]
+# From a linked worktree, a branch with no worktree is checked out in the main
+# checkout, which becomes the new directory, and the linked worktree keeps its branch.
+main_checkout="$(cd "$scratch_directory/repository" && pwd -P)"
+worktree switch unused
+[ "$PWD" = "$main_checkout" ]
+[ "$(git branch --show-current)" = unused ]
+[ "$(git -C "$scratch_directory/one tree" branch --show-current)" = feature/one ]
 
 # In the main checkout, local and remote-only branches use Git checkout.
-worktree switch main
 previous_directory="$PWD"
-worktree switch unused
-[ "$PWD" = "$previous_directory" ]
-[ "$(git branch --show-current)" = unused ]
 worktree switch remote-only
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = remote-only ]
