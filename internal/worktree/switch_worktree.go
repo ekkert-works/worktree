@@ -49,18 +49,10 @@ func (u SwitchWorktree) Switch(ctx context.Context, command SwitchCommand) (Swit
 	if err != nil {
 		return SwitchResult{}, err
 	}
-	var result SwitchResult
-	for _, candidate := range worktrees {
-		if !candidate.MatchesBranch(command.Branch) {
-			continue
-		}
-		if result.Path != "" {
-			return SwitchResult{}, ErrAmbiguous
-		}
-		result.Path = candidate.Path()
-	}
-	if result.Path != "" {
-		return result, nil
+	if path, matched, err := resolveWorktree(worktrees, command.Branch); err != nil {
+		return SwitchResult{}, err
+	} else if matched {
+		return SwitchResult{Path: path}, nil
 	}
 	location, err := u.checkout.ReadLocation(ctx)
 	if err != nil {
@@ -73,4 +65,40 @@ func (u SwitchWorktree) Switch(ctx context.Context, command SwitchCommand) (Swit
 		return SwitchResult{}, err
 	}
 	return SwitchResult{Path: location.Path}, nil
+}
+
+// resolveWorktree finds the worktree to switch to. An exact branch match wins;
+// otherwise the highest-scoring fuzzy match does. It reports matched=false when
+// no worktree matches, so the caller can fall back to a literal checkout. A tie
+// for the best match, exact or fuzzy, is ambiguous.
+func resolveWorktree(worktrees []Worktree, query string) (path string, matched bool, err error) {
+	for _, candidate := range worktrees {
+		if !candidate.MatchesBranch(query) {
+			continue
+		}
+		if matched {
+			return "", false, ErrAmbiguous
+		}
+		path, matched = candidate.Path(), true
+	}
+	if matched {
+		return path, true, nil
+	}
+
+	bestScore := 0
+	tied := false
+	for _, candidate := range worktrees {
+		score := fuzzyScore(query, candidate.Branch())
+		switch {
+		case score <= 0:
+		case score > bestScore:
+			path, bestScore, matched, tied = candidate.Path(), score, true, false
+		case score == bestScore:
+			tied = true
+		}
+	}
+	if tied {
+		return "", false, ErrAmbiguous
+	}
+	return path, matched, nil
 }

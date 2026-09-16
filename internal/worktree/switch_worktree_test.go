@@ -39,9 +39,11 @@ func TestSwitch(t *testing.T) {
 		{name: "match", branch: "feature", worktrees: []worktree.Worktree{detached, feature}, wantPath: "/repo with spaces"},
 		{name: "empty", wantError: worktree.ErrInvalidBranch},
 		{name: "option", branch: "--force", wantError: worktree.ErrInvalidBranch},
-		{name: "missing", branch: "other", worktrees: []worktree.Worktree{feature}, wantError: worktree.ErrCheckoutFailure},
-		{name: "exact match only", branch: "feat", worktrees: []worktree.Worktree{feature}, wantError: worktree.ErrCheckoutFailure},
+		{name: "no fuzzy match", branch: "xyz", worktrees: []worktree.Worktree{feature}, wantError: worktree.ErrCheckoutFailure},
+		{name: "fuzzy match", branch: "feat", worktrees: []worktree.Worktree{feature}, wantPath: "/repo with spaces"},
+		{name: "fuzzy ranks best", branch: "feat", worktrees: []worktree.Worktree{worktree.NewWorktree("/other", "some-feature-thing"), feature}, wantPath: "/repo with spaces"},
 		{name: "ambiguous", branch: "feature", worktrees: []worktree.Worktree{feature, feature}, wantError: worktree.ErrAmbiguous},
+		{name: "fuzzy tie is ambiguous", branch: "ab", worktrees: []worktree.Worktree{worktree.NewWorktree("/x", "a-b-1"), worktree.NewWorktree("/y", "a-b-2")}, wantError: worktree.ErrAmbiguous},
 		{name: "read failure", branch: "feature", listError: worktree.ErrReadFailure, wantError: worktree.ErrReadFailure},
 	} {
 		t.Run(test.name, func(t *testing.T) {
