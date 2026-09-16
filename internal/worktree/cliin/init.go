@@ -31,7 +31,7 @@ func initShell(arguments []string, stdout, stderr io.Writer) int {
 // parent shell's directory, so this function performs the checkout and changes
 // the shell's directory itself.
 const switchFunction = `worktree() {
-    if [ "$#" -ne 2 ] || { [ "$1" != "switch" ] && [ "$1" != "add" ]; }; then
+    if [ "$#" -ne 2 ] || { [ "$1" != "switch" ] && [ "$1" != "s" ] && [ "$1" != "add" ]; }; then
         command worktree "$@"
         return $?
     fi
@@ -48,7 +48,7 @@ const switchFunction = `worktree() {
 const bashScript = switchFunction + `
 _worktree_complete_bash() {
     COMPREPLY=()
-    if [ "$COMP_CWORD" -ne 2 ] || [ "${COMP_WORDS[1]}" != "switch" ]; then
+    if [ "$COMP_CWORD" -ne 2 ] || { [ "${COMP_WORDS[1]}" != "switch" ] && [ "${COMP_WORDS[1]}" != "s" ]; }; then
         return 0
     fi
 
@@ -63,7 +63,7 @@ complete -F _worktree_complete_bash worktree
 
 const zshScript = switchFunction + `
 _worktree_complete_zsh() {
-    if [ "$CURRENT" -ne 3 ] || [ "${words[2]}" != "switch" ]; then
+    if [ "$CURRENT" -ne 3 ] || { [ "${words[2]}" != "switch" ] && [ "${words[2]}" != "s" ]; }; then
         return 0
     fi
 

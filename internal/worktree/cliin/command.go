@@ -32,7 +32,7 @@ func Run(ctx context.Context, arguments []string, useCase Switcher, adder Adder,
 	if len(arguments) == 2 && arguments[0] == "add" {
 		return addBranch(ctx, arguments[1], adder, stdout, stderr)
 	}
-	if len(arguments) != 2 || arguments[0] != "switch" {
+	if len(arguments) != 2 || !isSwitch(arguments[0]) {
 		fmt.Fprintln(stderr, "usage: worktree <switch|add> <branch>")
 		return 2
 	}
@@ -56,6 +56,10 @@ func addBranch(ctx context.Context, branch string, useCase Adder, stdout, stderr
 	return 0
 }
 
+func isSwitch(command string) bool {
+	return command == "switch" || command == "s"
+}
+
 func switchBranch(ctx context.Context, branch string, useCase Switcher, stdout, stderr io.Writer) int {
 	result, err := useCase.Switch(ctx, worktree.SwitchCommand{Branch: branch})
 	switch {
@@ -75,7 +79,7 @@ func switchBranch(ctx context.Context, branch string, useCase Switcher, stdout, 
 
 // Completion is a private shell protocol: one branch per line, no diagnostics.
 func complete(ctx context.Context, arguments []string, useCase Completer, stdout io.Writer) int {
-	if len(arguments) != 2 || arguments[0] != "switch" {
+	if len(arguments) != 2 || !isSwitch(arguments[0]) {
 		return 2
 	}
 	result, err := useCase.Complete(ctx, worktree.CompleteCommand{Prefix: arguments[1]})
