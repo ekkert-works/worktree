@@ -86,12 +86,13 @@ The command runs `git worktree add` and places the new worktree at
 branch `feature/my-change` becomes `/dev/worktree.worktrees/feature/my-change`.
 The branch path structure is kept.
 
-An existing branch is checked out. A branch with no local ref is created from
-`HEAD`. A name that exists only as a remote-tracking branch counts as new and
-does not set up tracking. Git rejects a branch that is already checked out in
-another worktree. The shell function changes into the new worktree, the same as
-`switch`. The command works from the main checkout or a linked worktree. It
-supports only standard repositories, not bare ones.
+An existing local branch is checked out. A name that exists only as a
+remote-tracking branch creates a local branch that tracks the remote, through
+Git's own selection. A name that matches no ref is created from `HEAD`. Git
+rejects a branch that is already checked out in another worktree. The shell
+function changes into the new worktree, the same as `switch`. The command works
+from the main checkout or a linked worktree. It supports only standard
+repositories, not bare ones.
 
 Paths with spaces are supported. Failed operations leave the current directory
 unchanged. Detached worktrees cannot be selected by branch. The command does not

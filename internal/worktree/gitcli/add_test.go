@@ -44,6 +44,24 @@ func TestAddCreatesWorktreeForExistingBranch(t *testing.T) {
 	}
 }
 
+func TestAddTracksRemoteOnlyBranch(t *testing.T) {
+	directory := newRepository(t)
+	gitOutput(t, directory, "remote", "add", "origin", directory)
+	gitOutput(t, directory, "update-ref", "refs/remotes/origin/remote-only", "HEAD")
+
+	root, _ := filepath.EvalSymlinks(directory)
+	destination := root + ".worktrees/remote-only"
+	if err := NewAdd(directory).Add(context.Background(), destination, "remote-only"); err != nil {
+		t.Fatalf("add remote-only: %v", err)
+	}
+	if head := gitOutput(t, destination, "branch", "--show-current"); head != "remote-only" {
+		t.Fatalf("got branch %q, want remote-only", head)
+	}
+	if upstream := gitOutput(t, destination, "rev-parse", "--abbrev-ref", "@{upstream}"); upstream != "origin/remote-only" {
+		t.Fatalf("got upstream %q, want origin/remote-only", upstream)
+	}
+}
+
 func TestAddAdapterTranslatesFailures(t *testing.T) {
 	for _, scenario := range []struct {
 		name       string
