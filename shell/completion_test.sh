@@ -101,7 +101,7 @@ fi
 
 # Add creates a worktree for an existing branch and changes into it.
 worktree add unused
-[ "$(pwd -P)" = "$(cd "$scratch_directory/repository.worktrees/unused" && pwd -P)" ]
+[ "$(pwd -P)" = "$(cd "$scratch_directory/repository.worktrees/unused/repository" && pwd -P)" ]
 [ "$(git branch --show-current)" = unused ]
 
 # Failures stay silent and must not fall back to filenames.

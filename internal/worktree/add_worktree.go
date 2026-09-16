@@ -28,9 +28,11 @@ func NewAddWorktree(main MainCheckoutReader, adder WorktreeAdder) AddWorktree {
 	return AddWorktree{main: main, adder: adder}
 }
 
-// Add creates a worktree under <main>.worktrees/<branch> and returns its path.
-// The adapter checks out an existing branch or creates a new one. Git rejects
-// a branch that is already checked out in another worktree.
+// Add creates a worktree under <main>.worktrees/<branch>/<repository> and
+// returns its path. The repository name is the leaf so tty environments that
+// show the current directory keep naming the repository, not the branch. The
+// adapter checks out an existing branch or creates a new one. Git rejects a
+// branch that is already checked out in another worktree.
 func (u AddWorktree) Add(ctx context.Context, command AddCommand) (AddResult, error) {
 	if command.Branch == "" || strings.HasPrefix(command.Branch, "-") {
 		return AddResult{}, ErrInvalidBranch
@@ -39,7 +41,8 @@ func (u AddWorktree) Add(ctx context.Context, command AddCommand) (AddResult, er
 	if err != nil {
 		return AddResult{}, err
 	}
-	destination := root + ".worktrees/" + command.Branch
+	repository := root[strings.LastIndex(root, "/")+1:]
+	destination := root + ".worktrees/" + command.Branch + "/" + repository
 	if err := u.adder.Add(ctx, destination, command.Branch); err != nil {
 		return AddResult{}, err
 	}

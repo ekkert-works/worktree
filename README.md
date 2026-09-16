@@ -82,9 +82,11 @@ worktree add feature/my-change
 ```
 
 The command runs `git worktree add` and places the new worktree at
-`<main-checkout>.worktrees/<branch>`. For a main checkout at `/dev/worktree`,
-branch `feature/my-change` becomes `/dev/worktree.worktrees/feature/my-change`.
-The branch path structure is kept.
+`<main-checkout>.worktrees/<branch>/<repository>`. For a main checkout at
+`/dev/worktree`, branch `feature/my-change` becomes
+`/dev/worktree.worktrees/feature/my-change/worktree`. The branch path structure
+is kept. The repository name is the leaf directory, so tty environments that
+show the current directory keep naming the repository, not the branch.
 
 An existing local branch is checked out. A name that exists only as a
 remote-tracking branch creates a local branch that tracks the remote, through

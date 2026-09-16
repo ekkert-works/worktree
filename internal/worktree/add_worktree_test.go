@@ -38,7 +38,7 @@ func TestAdd(t *testing.T) {
 		wantPath  string
 		wantCalls int
 	}{
-		{name: "created", branch: "feature/x", wantPath: "/main.worktrees/feature/x", wantCalls: 1},
+		{name: "created", branch: "feature/x", wantPath: "/main.worktrees/feature/x/main", wantCalls: 1},
 		{name: "empty", wantError: worktree.ErrInvalidBranch},
 		{name: "option", branch: "--force", wantError: worktree.ErrInvalidBranch},
 		{name: "root failure", branch: "feature", rootError: worktree.ErrReadFailure, wantError: worktree.ErrReadFailure},
