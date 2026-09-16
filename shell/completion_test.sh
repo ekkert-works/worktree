@@ -89,7 +89,7 @@ worktree switch remote-only
 if worktree switch > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
     exit 1
 fi
-[ "$(cat "$scratch_directory/stderr")" = 'usage: worktree <switch|add> <branch>' ]
+[ "$(cat "$scratch_directory/stderr")" = 'usage: worktree <switch|add|list> <branch>' ]
 [ "$PWD" = "$previous_directory" ]
 [ "$(git branch --show-current)" = remote-only ]
 

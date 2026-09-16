@@ -16,5 +16,5 @@ func main() {
 	useCase := worktree.NewSwitchWorktree(lister, checkout)
 	addUseCase := worktree.NewAddWorktree(adder, adder)
 	completion := worktree.NewCompleteBranches(lister)
-	os.Exit(cliin.Run(context.Background(), os.Args[1:], useCase, addUseCase, completion, os.Stdout, os.Stderr))
+	os.Exit(cliin.Run(context.Background(), os.Args[1:], useCase, addUseCase, completion, lister, os.Stdout, os.Stderr))
 }

@@ -21,7 +21,7 @@ func TestInitShell(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			code := Run(context.Background(), test.arguments, nil, nil, nil, &stdout, &stderr)
+			code := Run(context.Background(), test.arguments, nil, nil, nil, nil, &stdout, &stderr)
 			if code != test.code {
 				t.Fatalf("got code %d, want %d", code, test.code)
 			}

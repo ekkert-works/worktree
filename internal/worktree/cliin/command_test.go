@@ -31,6 +31,44 @@ func (s *stubCompletion) Complete(_ context.Context, command worktree.CompleteCo
 	return worktree.CompleteResult{Branches: s.branches}, s.err
 }
 
+type stubLister struct {
+	worktrees []worktree.Worktree
+	err       error
+}
+
+func (s stubLister) List(context.Context) ([]worktree.Worktree, error) {
+	return s.worktrees, s.err
+}
+
+func TestList(t *testing.T) {
+	trees := []worktree.Worktree{
+		worktree.NewWorktree("/main", "main"),
+		worktree.NewWorktree("/detached", ""),
+	}
+	for _, test := range []struct {
+		name      string
+		worktrees []worktree.Worktree
+		err       error
+		code      int
+		output    string
+	}{
+		{name: "worktrees", worktrees: trees, output: "main\t/main\n\t/detached\n"},
+		{name: "empty"},
+		{name: "failure", err: worktree.ErrReadFailure, code: 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			code := Run(context.Background(), []string{"list"}, nil, nil, nil, stubLister{worktrees: test.worktrees, err: test.err}, &stdout, &stderr)
+			if code != test.code || stdout.String() != test.output {
+				t.Fatalf("got code %d, output %q", code, stdout.String())
+			}
+			if (stderr.Len() > 0) != (test.code != 0) {
+				t.Fatalf("unexpected stderr: %q", stderr.String())
+			}
+		})
+	}
+}
+
 func TestCompletionProtocol(t *testing.T) {
 	for _, test := range []struct {
 		name      string
@@ -49,7 +87,7 @@ func TestCompletionProtocol(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			completion := &stubCompletion{branches: test.branches, err: test.err}
 			var stdout, stderr bytes.Buffer
-			code := Run(context.Background(), test.arguments, nil, nil, completion, &stdout, &stderr)
+			code := Run(context.Background(), test.arguments, nil, nil, completion, nil, &stdout, &stderr)
 			if code != test.code || stdout.String() != test.output || stderr.Len() != 0 {
 				t.Fatalf("got code %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 			}
@@ -80,7 +118,7 @@ func TestRun(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			code := Run(context.Background(), test.arguments, stubSwitch{err: test.err}, stubAdd{err: test.err}, nil, &stdout, &stderr)
+			code := Run(context.Background(), test.arguments, stubSwitch{err: test.err}, stubAdd{err: test.err}, nil, nil, &stdout, &stderr)
 			if code != test.code || stdout.String() != test.output {
 				t.Fatalf("got code %d, output %q", code, stdout.String())
 			}

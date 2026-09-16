@@ -21,22 +21,44 @@ type Completer interface {
 	Complete(ctx context.Context, command worktree.CompleteCommand) (worktree.CompleteResult, error)
 }
 
+type Lister interface {
+	List(ctx context.Context) ([]worktree.Worktree, error)
+}
+
 // Run writes destinations or completion candidates to stdout.
-func Run(ctx context.Context, arguments []string, useCase Switcher, adder Adder, completion Completer, stdout, stderr io.Writer) int {
+func Run(ctx context.Context, arguments []string, useCase Switcher, adder Adder, completion Completer, lister Lister, stdout, stderr io.Writer) int {
 	if len(arguments) > 0 && arguments[0] == "__complete" {
 		return complete(ctx, arguments[1:], completion, stdout)
 	}
 	if len(arguments) > 0 && arguments[0] == "init" {
 		return initShell(arguments[1:], stdout, stderr)
 	}
+	if len(arguments) == 1 && arguments[0] == "list" {
+		return listWorktrees(ctx, lister, stdout, stderr)
+	}
 	if len(arguments) == 2 && arguments[0] == "add" {
 		return addBranch(ctx, arguments[1], adder, stdout, stderr)
 	}
 	if len(arguments) != 2 || !isSwitch(arguments[0]) {
-		fmt.Fprintln(stderr, "usage: worktree <switch|add> <branch>")
+		fmt.Fprintln(stderr, "usage: worktree <switch|add|list> <branch>")
 		return 2
 	}
 	return switchBranch(ctx, arguments[1], useCase, stdout, stderr)
+}
+
+func listWorktrees(ctx context.Context, useCase Lister, stdout, stderr io.Writer) int {
+	worktrees, err := useCase.List(ctx)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	for _, tree := range worktrees {
+		if _, err := fmt.Fprintf(stdout, "%s\t%s\n", tree.Branch(), tree.Path()); err != nil {
+			fmt.Fprintln(stderr, "worktree: cannot write worktree list")
+			return 1
+		}
+	}
+	return 0
 }
 
 func addBranch(ctx context.Context, branch string, useCase Adder, stdout, stderr io.Writer) int {

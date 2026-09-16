@@ -103,6 +103,18 @@ create or remove worktree directories.
 
 Exit codes: `0` for success, `1` for an operation failure, `2` for invalid usage.
 
+## List worktrees
+
+List the repository's worktrees, one per line, as `<branch>\t<path>`:
+
+```sh
+worktree list
+```
+
+Detached worktrees have an empty branch field. The bare worktree of a bare
+repository is not listed. This command reads only and never changes the
+directory.
+
 ## Branch completion
 
 Type `worktree switch ` and press Tab to complete a branch name.
