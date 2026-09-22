@@ -31,7 +31,7 @@ func initShell(arguments []string, stdout, stderr io.Writer) int {
 // parent shell's directory, so this function performs the checkout and changes
 // the shell's directory itself.
 const switchFunction = `worktree() {
-    if [ "$#" -ne 2 ] || { [ "$1" != "switch" ] && [ "$1" != "s" ] && [ "$1" != "add" ]; }; then
+    if [ "$#" -ne 2 ] || { [ "$1" != "switch" ] && [ "$1" != "s" ]; }; then
         command worktree "$@"
         return $?
     fi

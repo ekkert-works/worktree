@@ -7,35 +7,40 @@ import (
 )
 
 var (
-	ErrInvalidBranch   = errors.New("worktree: invalid branch name")
-	ErrAmbiguous       = errors.New("worktree: multiple worktrees for branch")
-	ErrUnavailable     = errors.New("worktree: git is unavailable")
-	ErrReadFailure     = errors.New("worktree: cannot read worktrees")
-	ErrCheckoutFailure = errors.New("worktree: cannot check out branch; check the branch name and local changes")
+	ErrInvalidBranch = errors.New("worktree: invalid branch name")
+	ErrAmbiguous     = errors.New("worktree: multiple worktrees for branch")
+	ErrUnavailable   = errors.New("worktree: git is unavailable")
+	ErrReadFailure   = errors.New("worktree: cannot read worktrees")
 )
 
 type WorktreeLister interface {
 	List(ctx context.Context) ([]Worktree, error)
 }
 
-type Checkout interface {
-	// MainCheckout reports the absolute path of the repository's main checkout.
-	MainCheckout(ctx context.Context) (string, error)
-	Checkout(ctx context.Context, directory, branch string) error
+// WorktreeCreator adds a worktree for the branch and returns its destination.
+// An existing branch is checked out; an unknown name creates the branch from
+// the one checked out in the current directory.
+type WorktreeCreator interface {
+	Add(ctx context.Context, command AddCommand) (AddResult, error)
 }
 
 type SwitchCommand struct{ Branch string }
 type SwitchResult struct{ Path string }
 
 type SwitchWorktree struct {
-	lister   WorktreeLister
-	checkout Checkout
+	lister  WorktreeLister
+	creator WorktreeCreator
 }
 
-func NewSwitchWorktree(lister WorktreeLister, checkout Checkout) SwitchWorktree {
-	return SwitchWorktree{lister: lister, checkout: checkout}
+func NewSwitchWorktree(lister WorktreeLister, creator WorktreeCreator) SwitchWorktree {
+	return SwitchWorktree{lister: lister, creator: creator}
 }
 
+// Switch moves to the worktree that holds the branch. An exact branch match
+// wins, then the highest-scoring fuzzy match. When no worktree matches, it
+// creates one: an existing branch is checked out, and an unknown name creates a
+// branch from the one checked out in the current directory. Worktrees are the
+// only unit this tool works with; it never checks a branch out in place.
 func (u SwitchWorktree) Switch(ctx context.Context, command SwitchCommand) (SwitchResult, error) {
 	if command.Branch == "" || strings.HasPrefix(command.Branch, "-") {
 		return SwitchResult{}, ErrInvalidBranch
@@ -44,28 +49,24 @@ func (u SwitchWorktree) Switch(ctx context.Context, command SwitchCommand) (Swit
 	if err != nil {
 		return SwitchResult{}, err
 	}
-	if path, matched, err := resolveWorktree(worktrees, command.Branch); err != nil {
-		return SwitchResult{}, err
-	} else if matched {
-		return SwitchResult{Path: path}, nil
-	}
-	// No worktree holds the branch, so check it out in the main checkout. From a
-	// linked worktree this moves to the main checkout instead of changing the
-	// current worktree's branch.
-	mainCheckout, err := u.checkout.MainCheckout(ctx)
+	path, matched, err := resolveWorktree(worktrees, command.Branch)
 	if err != nil {
 		return SwitchResult{}, err
 	}
-	if err := u.checkout.Checkout(ctx, mainCheckout, command.Branch); err != nil {
+	if matched {
+		return SwitchResult{Path: path}, nil
+	}
+	created, err := u.creator.Add(ctx, AddCommand{Branch: command.Branch})
+	if err != nil {
 		return SwitchResult{}, err
 	}
-	return SwitchResult{Path: mainCheckout}, nil
+	return SwitchResult{Path: created.Path}, nil
 }
 
 // resolveWorktree finds the worktree to switch to. An exact branch match wins;
 // otherwise the highest-scoring fuzzy match does. It reports matched=false when
-// no worktree matches, so the caller can fall back to a literal checkout. A tie
-// for the best match, exact or fuzzy, is ambiguous.
+// no worktree matches, so the caller can fall back to creating one. A tie for
+// the best match, exact or fuzzy, is ambiguous.
 func resolveWorktree(worktrees []Worktree, query string) (path string, matched bool, err error) {
 	for _, candidate := range worktrees {
 		if !candidate.MatchesBranch(query) {

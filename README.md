@@ -1,7 +1,8 @@
 # Worktree
 
-A small Go CLI to switch to an existing Git worktree, check out a branch, or
-add a worktree for an existing branch.
+A small Go CLI that works entirely in Git worktrees: switch to the worktree for
+a branch, and create one on the spot when it does not exist yet. It never checks
+a branch out in place.
 Requires Go 1.26 and Git on `PATH`.
 
 ## Installation
@@ -47,59 +48,44 @@ From a Git repository or one of its worktrees:
 worktree switch feature/my-change
 ```
 
-Use the branch name of an existing worktree to move to it. The argument is
-a branch name, not a worktree directory path.
+`s` is a shorter alias: `worktree s feature/my-change`. The argument is a branch
+name, not a worktree directory path.
 
 The integration defines a `worktree` shell function that handles
 `worktree switch <branch>` and passes other invocations to the binary. This
 function is required to change the shell's directory. Without it, the binary
 prints the destination path only.
 
-If the branch has an existing worktree, the shell function changes to that
-directory. The branch name must match exactly.
+If a worktree already holds the branch, the shell function changes to that
+directory. The branch name is matched exactly first, then by a ranked fuzzy
+match, so `worktree s feat` moves to the `feature/my-change` worktree.
 
-If the branch has no worktree, the command runs `git checkout <branch> --` in
-the main checkout and moves you there. From a linked worktree, including a
-detached worktree, this leaves the current worktree's branch unchanged and
-switches to the main checkout. Switching to another existing worktree is still
-allowed.
+If no worktree matches, the command creates one and moves you there:
 
-Git applies its normal checks for local changes and remote branch selection.
-An unqualified remote branch name can create a local tracking branch. A qualified
-name such as `origin/feature` checks out that remote ref with a detached HEAD,
-as `git checkout` does. Completion uses local remote-tracking refs; it does not fetch.
+- An existing local branch is checked out into the new worktree.
+- A name that exists only as a remote-tracking branch creates a local branch
+  that tracks the remote, through Git's own selection.
+- A name that matches no branch creates a new branch, started from the branch
+  checked out in the current directory.
 
-The binary performs the checkout, if needed, and prints the destination path.
-A child process cannot change its parent shell's directory. Running
-`command worktree switch <branch>` can change the checked-out branch;
-it is not a read-only path lookup.
-
-## Add a worktree
-
-Create a worktree for a branch and move into it:
-
-```sh
-worktree add feature/my-change
-```
-
-The command runs `git worktree add` and places the new worktree at
+The new worktree is created with `git worktree add` and placed at
 `<main-checkout>.worktrees/<branch>/<repository>`. For a main checkout at
 `/dev/worktree`, branch `feature/my-change` becomes
 `/dev/worktree.worktrees/feature/my-change/worktree`. The branch path structure
 is kept. The repository name is the leaf directory, so tty environments that
-show the current directory keep naming the repository, not the branch.
+show the current directory keep naming the repository, not the branch. Git
+rejects a branch that is already checked out in another worktree, but that
+branch already has a worktree, so `switch` moves to it instead of creating one.
 
-An existing local branch is checked out. A name that exists only as a
-remote-tracking branch creates a local branch that tracks the remote, through
-Git's own selection. A name that matches no ref is created from `HEAD`. Git
-rejects a branch that is already checked out in another worktree. The shell
-function changes into the new worktree, the same as `switch`. The command works
-from the main checkout or a linked worktree. It supports only standard
-repositories, not bare ones.
+The binary performs any creation and prints the destination path. A child
+process cannot change its parent shell's directory. Running
+`command worktree switch <branch>` can create a worktree; it is not a read-only
+path lookup. Completion uses local remote-tracking refs; it does not fetch.
 
-Paths with spaces are supported. Failed operations leave the current directory
-unchanged. Detached worktrees cannot be selected by branch. The command does not
-create or remove worktree directories.
+The command works from the main checkout or a linked worktree, and supports only
+standard repositories, not bare ones. Paths with spaces are supported. Failed
+operations leave the current directory unchanged. Detached worktrees cannot be
+selected by branch, and the command does not remove worktree directories.
 
 Exit codes: `0` for success, `1` for an operation failure, `2` for invalid usage.
 
@@ -122,8 +108,8 @@ A prefix such as `worktree switch feature/` limits the suggestions. Completion
 lists sorted, unique local and remote-tracking branch names, including branches
 without a worktree. Remote branches appear with and without the remote prefix.
 Symbolic remote refs such as `origin/HEAD` are excluded. In a linked worktree,
-completion shows the same branches; a branch with no worktree is checked out in
-the main checkout. Detached worktrees have no branch name to complete. Outside a repository,
+completion shows the same branches; a branch with no worktree gets one created on
+switch. Detached worktrees have no branch name to complete. Outside a repository,
 completion stays silent.
 
 ## Structure
@@ -131,8 +117,8 @@ completion stays silent.
 ```text
 cmd/worktree/main.go                   composition root
 internal/worktree/worktree.go          entity and domain errors
-internal/worktree/switch_worktree.go    use case and inbound/outbound ports
-internal/worktree/add_worktree.go       add-worktree use case and outbound ports
+internal/worktree/switch_worktree.go    switch-or-create use case and ports
+internal/worktree/add_worktree.go       worktree-creation use case and outbound ports
 internal/worktree/complete_branches.go  branch completion use case and inbound port
 internal/worktree/cliin/               CLI inbound adapter and shell integration
 internal/worktree/gitcli/              Git outbound adapter
@@ -143,12 +129,11 @@ provides the directory change and completion. Load it with
 `eval "$(worktree init <bash|zsh>)"`.
 
 The CLI calls the `SwitchWorktree` inbound port. The use case calls the
-`WorktreeLister` outbound port. The Git adapter implements that port and converts
-process and parsing failures to use-case errors. Only `main` wires the adapters.
-When no existing worktree matches, the switch use case calls `Checkout` to find
-the main checkout and check the branch out there, so a switch from a linked
-worktree moves to the main checkout instead of changing the current worktree.
-The core owns this rule and uses plain Go types, with no CLI or process dependencies.
+`WorktreeLister` outbound port to resolve an existing worktree, and the
+`WorktreeCreator` port (the `AddWorktree` use case) to create one when none
+matches. The Git adapter implements those ports and converts process and parsing
+failures to use-case errors. Only `main` wires the adapters. The core owns the
+switch-or-create rule and uses plain Go types, with no CLI or process dependencies.
 
 Shell completion calls the private `worktree __complete switch <prefix>` CLI protocol.
 The CLI calls `CompleteBranches`, which uses `WorktreeLister` and `BranchLister`.

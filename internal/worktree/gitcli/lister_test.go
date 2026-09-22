@@ -35,7 +35,7 @@ func TestListRealWorktrees(t *testing.T) {
 	runGit("-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "initial")
 	destination := filepath.Join(directory, "feature tree")
 	runGit("worktree", "add", "-b", "feature", destination)
-	result, err := worktree.NewSwitchWorktree(NewLister(directory), NewCheckout(directory)).Switch(context.Background(), worktree.SwitchCommand{Branch: "feature"})
+	result, err := switchBranch(directory, "feature")
 	if err != nil {
 		t.Fatal(err)
 	}

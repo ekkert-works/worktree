@@ -70,33 +70,33 @@ worktree switch feature/one
 complete_branches feature/t
 [ "${suggestions[*]}" = feature/two ]
 
-# From a linked worktree, a branch with no worktree is checked out in the main
-# checkout, which becomes the new directory, and the linked worktree keeps its branch.
+# From a linked worktree, switching to a branch with no worktree creates a
+# worktree for it and moves there; the other worktrees keep their branches.
 main_checkout="$(cd "$scratch_directory/repository" && pwd -P)"
 worktree switch unused
-[ "$PWD" = "$main_checkout" ]
+[ "$PWD" = "$(cd "$scratch_directory/repository.worktrees/unused/repository" && pwd -P)" ]
 [ "$(git branch --show-current)" = unused ]
 [ "$(git -C "$scratch_directory/one tree" branch --show-current)" = feature/one ]
+[ "$(git -C "$main_checkout" branch --show-current)" = main ]
 
-# In the main checkout, local and remote-only branches use Git checkout.
-previous_directory="$PWD"
+# A remote-only name creates a worktree that tracks the remote branch.
 worktree switch remote-only
-[ "$PWD" = "$previous_directory" ]
+[ "$PWD" = "$(cd "$scratch_directory/repository.worktrees/remote-only/repository" && pwd -P)" ]
 [ "$(git branch --show-current)" = remote-only ]
 [ "$(git rev-parse --abbrev-ref '@{upstream}')" = origin/remote-only ]
 
-# Invalid arguments keep the current directory and branch.
+# Invalid arguments keep the current directory.
+previous_directory="$PWD"
 if worktree switch > "$scratch_directory/stdout" 2> "$scratch_directory/stderr"; then
     exit 1
 fi
-[ "$(cat "$scratch_directory/stderr")" = 'usage: worktree <switch|add|list> <branch>' ]
+[ "$(cat "$scratch_directory/stderr")" = 'usage: worktree <switch|list> <branch>' ]
 [ "$PWD" = "$previous_directory" ]
-[ "$(git branch --show-current)" = remote-only ]
 
-# Add creates a worktree for an existing branch and changes into it.
-worktree add unused
-[ "$(pwd -P)" = "$(cd "$scratch_directory/repository.worktrees/unused/repository" && pwd -P)" ]
-[ "$(git branch --show-current)" = unused ]
+# A name with no branch creates a new branch from the current directory.
+worktree s added-branch
+[ "$(pwd -P)" = "$(cd "$scratch_directory/repository.worktrees/added-branch/repository" && pwd -P)" ]
+[ "$(git branch --show-current)" = added-branch ]
 
 # Failures stay silent and must not fall back to filenames.
 cd "$scratch_directory"
