@@ -33,10 +33,10 @@ type fakeCreator struct {
 	calls  int
 }
 
-func (f *fakeCreator) Add(_ context.Context, command worktree.AddCommand) (worktree.AddResult, error) {
+func (f *fakeCreator) Create(_ context.Context, command worktree.CreateCommand) (worktree.CreateResult, error) {
 	f.calls++
 	f.branch = command.Branch
-	return worktree.AddResult{Path: f.path}, f.err
+	return worktree.CreateResult{Path: f.path}, f.err
 }
 
 func TestSwitch(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 // resolves an existing worktree, and the adder creates one when none matches.
 func switchBranch(directory, branch string) (worktree.SwitchResult, error) {
 	adder := NewAdd(directory)
-	useCase := worktree.NewSwitchWorktree(NewLister(directory), worktree.NewAddWorktree(adder, adder))
+	useCase := worktree.NewSwitchWorktree(NewLister(directory), worktree.NewCreateWorktree(adder, adder))
 	return useCase.Switch(context.Background(), worktree.SwitchCommand{Branch: branch})
 }
 

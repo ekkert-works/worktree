@@ -118,7 +118,7 @@ completion stays silent.
 cmd/worktree/main.go                   composition root
 internal/worktree/worktree.go          entity and domain errors
 internal/worktree/switch_worktree.go    switch-or-create use case and ports
-internal/worktree/add_worktree.go       worktree-creation use case and outbound ports
+internal/worktree/create_worktree.go    worktree-creation use case and outbound ports
 internal/worktree/complete_branches.go  branch completion use case and inbound port
 internal/worktree/cliin/               CLI inbound adapter and shell integration
 internal/worktree/gitcli/              Git outbound adapter
@@ -130,7 +130,7 @@ provides the directory change and completion. Load it with
 
 The CLI calls the `SwitchWorktree` inbound port. The use case calls the
 `WorktreeLister` outbound port to resolve an existing worktree, and the
-`WorktreeCreator` port (the `AddWorktree` use case) to create one when none
+`WorktreeCreator` port (the `CreateWorktree` use case) to create one when none
 matches. The Git adapter implements those ports and converts process and parsing
 failures to use-case errors. Only `main` wires the adapters. The core owns the
 switch-or-create rule and uses plain Go types, with no CLI or process dependencies.

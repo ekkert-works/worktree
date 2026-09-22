@@ -12,8 +12,8 @@ import (
 func main() {
 	lister := gitcli.NewLister(".")
 	adder := gitcli.NewAdd(".")
-	addUseCase := worktree.NewAddWorktree(adder, adder)
-	switchUseCase := worktree.NewSwitchWorktree(lister, addUseCase)
+	createUseCase := worktree.NewCreateWorktree(adder, adder)
+	switchUseCase := worktree.NewSwitchWorktree(lister, createUseCase)
 	completion := worktree.NewCompleteBranches(lister)
 	os.Exit(cliin.Run(context.Background(), os.Args[1:], switchUseCase, completion, lister, os.Stdout, os.Stderr))
 }

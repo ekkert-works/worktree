@@ -28,7 +28,7 @@ func (f *fakeAdd) Add(_ context.Context, path, branch string) error {
 	return f.addError
 }
 
-func TestAdd(t *testing.T) {
+func TestCreate(t *testing.T) {
 	for _, test := range []struct {
 		name      string
 		branch    string
@@ -46,7 +46,7 @@ func TestAdd(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			adder := &fakeAdd{root: "/main", rootError: test.rootError, addError: test.addError}
-			result, err := worktree.NewAddWorktree(adder, adder).Add(context.Background(), worktree.AddCommand{Branch: test.branch})
+			result, err := worktree.NewCreateWorktree(adder, adder).Create(context.Background(), worktree.CreateCommand{Branch: test.branch})
 			if !errors.Is(err, test.wantError) || result.Path != test.wantPath || adder.addCalls != test.wantCalls {
 				t.Fatalf("got %+v, %v, %d add calls", result, err, adder.addCalls)
 			}

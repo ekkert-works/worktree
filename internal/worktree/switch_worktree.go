@@ -21,7 +21,7 @@ type WorktreeLister interface {
 // An existing branch is checked out; an unknown name creates the branch from
 // the one checked out in the current directory.
 type WorktreeCreator interface {
-	Add(ctx context.Context, command AddCommand) (AddResult, error)
+	Create(ctx context.Context, command CreateCommand) (CreateResult, error)
 }
 
 type SwitchCommand struct{ Branch string }
@@ -56,7 +56,7 @@ func (u SwitchWorktree) Switch(ctx context.Context, command SwitchCommand) (Swit
 	if matched {
 		return SwitchResult{Path: path}, nil
 	}
-	created, err := u.creator.Add(ctx, AddCommand{Branch: command.Branch})
+	created, err := u.creator.Create(ctx, CreateCommand{Branch: command.Branch})
 	if err != nil {
 		return SwitchResult{}, err
 	}

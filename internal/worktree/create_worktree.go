@@ -16,35 +16,35 @@ type WorktreeAdder interface {
 	Add(ctx context.Context, path, branch string) error
 }
 
-type AddCommand struct{ Branch string }
-type AddResult struct{ Path string }
+type CreateCommand struct{ Branch string }
+type CreateResult struct{ Path string }
 
-type AddWorktree struct {
+type CreateWorktree struct {
 	main  MainCheckoutReader
 	adder WorktreeAdder
 }
 
-func NewAddWorktree(main MainCheckoutReader, adder WorktreeAdder) AddWorktree {
-	return AddWorktree{main: main, adder: adder}
+func NewCreateWorktree(main MainCheckoutReader, adder WorktreeAdder) CreateWorktree {
+	return CreateWorktree{main: main, adder: adder}
 }
 
-// Add creates a worktree under <main>.worktrees/<branch>/<repository> and
+// Create adds a worktree under <main>.worktrees/<branch>/<repository> and
 // returns its path. The repository name is the leaf so tty environments that
 // show the current directory keep naming the repository, not the branch. The
 // adapter checks out an existing branch or creates a new one. Git rejects a
 // branch that is already checked out in another worktree.
-func (u AddWorktree) Add(ctx context.Context, command AddCommand) (AddResult, error) {
+func (u CreateWorktree) Create(ctx context.Context, command CreateCommand) (CreateResult, error) {
 	if command.Branch == "" || strings.HasPrefix(command.Branch, "-") {
-		return AddResult{}, ErrInvalidBranch
+		return CreateResult{}, ErrInvalidBranch
 	}
 	root, err := u.main.ReadMainCheckout(ctx)
 	if err != nil {
-		return AddResult{}, err
+		return CreateResult{}, err
 	}
 	repository := root[strings.LastIndex(root, "/")+1:]
 	destination := root + ".worktrees/" + command.Branch + "/" + repository
 	if err := u.adder.Add(ctx, destination, command.Branch); err != nil {
-		return AddResult{}, err
+		return CreateResult{}, err
 	}
-	return AddResult{Path: destination}, nil
+	return CreateResult{Path: destination}, nil
 }
