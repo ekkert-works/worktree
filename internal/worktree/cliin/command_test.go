@@ -46,7 +46,7 @@ func TestList(t *testing.T) {
 		code      int
 		output    string
 	}{
-		{name: "worktrees", worktrees: trees, output: "main\t/main\n\t/detached\n"},
+		{name: "worktrees", worktrees: trees, output: "BRANCH      PATH\nmain        /main\n(detached)  /detached\n"},
 		{name: "empty"},
 		{name: "failure", err: worktree.ErrReadFailure, code: 1},
 	} {

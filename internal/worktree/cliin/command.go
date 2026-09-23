@@ -39,19 +39,43 @@ func Run(ctx context.Context, arguments []string, useCase Switcher, completion C
 	return switchBranch(ctx, arguments[1], useCase, stdout, stderr)
 }
 
+// detachedLabel stands in for the branch of a detached worktree, which has none.
+const detachedLabel = "(detached)"
+
 func listWorktrees(ctx context.Context, useCase Lister, stdout, stderr io.Writer) int {
 	worktrees, err := useCase.List(ctx)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
+	if len(worktrees) == 0 {
+		return 0
+	}
+	branchWidth := len("BRANCH")
 	for _, tree := range worktrees {
-		if _, err := fmt.Fprintf(stdout, "%s\t%s\n", tree.Branch(), tree.Path()); err != nil {
+		if width := len(branchLabel(tree)); width > branchWidth {
+			branchWidth = width
+		}
+	}
+	rows := make([]string, 0, len(worktrees)+1)
+	rows = append(rows, fmt.Sprintf("%-*s  %s", branchWidth, "BRANCH", "PATH"))
+	for _, tree := range worktrees {
+		rows = append(rows, fmt.Sprintf("%-*s  %s", branchWidth, branchLabel(tree), tree.Path()))
+	}
+	for _, row := range rows {
+		if _, err := fmt.Fprintln(stdout, row); err != nil {
 			fmt.Fprintln(stderr, "worktree: cannot write worktree list")
 			return 1
 		}
 	}
 	return 0
+}
+
+func branchLabel(tree worktree.Worktree) string {
+	if tree.Branch() == "" {
+		return detachedLabel
+	}
+	return tree.Branch()
 }
 
 func isSwitch(command string) bool {
