@@ -72,7 +72,9 @@ _worktree_complete_zsh() {
     output="$(command worktree __complete switch "$PREFIX" 2>/dev/null)" || return 0
     [ -n "$output" ] || return 0
     branches=("${(@f)output}")
-    compadd -- "${branches[@]}"
+    # -U keeps every candidate: the binary already fuzzy-matched them, so they
+    # need not start with the typed word. Without it zsh drops non-prefix matches.
+    compadd -U -- "${branches[@]}"
 }
 
 compdef _worktree_complete_zsh worktree

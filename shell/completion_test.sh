@@ -30,10 +30,22 @@ git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/remote-only
 if [ -n "${ZSH_VERSION-}" ]; then
     [ "${_comps[worktree]}" = _worktree_complete_zsh ]
     # Capture candidates at the completion boundary without an interactive ZLE.
+    # This models zsh's real behaviour: by default compadd keeps only candidates
+    # that start with the typed word, and -U keeps every candidate. Fuzzy matches
+    # reach the shell only when the integration passes -U, so the stub must too.
     compadd() {
-        [ "$1" = -- ]
+        local keep_all=
+        while [ "$1" != -- ]; do
+            [ "$1" = -U ] && keep_all=1
+            shift
+        done
         shift
-        suggestions=("$@")
+        suggestions=()
+        for candidate in "$@"; do
+            if [ -n "$keep_all" ] || [ -z "$PREFIX" ] || [ "${candidate#$PREFIX}" != "$candidate" ]; then
+                suggestions+=("$candidate")
+            fi
+        done
     }
 else
     [[ "$(complete -p worktree)" == *"-F _worktree_complete_bash worktree" ]]
