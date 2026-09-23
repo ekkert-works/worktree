@@ -74,6 +74,10 @@ _worktree_complete_zsh() {
     branches=("${(@f)output}")
     # -U keeps every candidate: the binary already fuzzy-matched them, so they
     # need not start with the typed word. Without it zsh drops non-prefix matches.
+    # Force menu insertion so a full branch replaces the typed word; otherwise
+    # zsh would replace it with the (often empty) common prefix of the matches
+    # and the typed word would vanish.
+    compstate[insert]=menu
     compadd -U -- "${branches[@]}"
 }
 

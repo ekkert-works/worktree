@@ -29,6 +29,9 @@ git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/remote-only
 
 if [ -n "${ZSH_VERSION-}" ]; then
     [ "${_comps[worktree]}" = _worktree_complete_zsh ]
+    # Real completion always provides compstate as a special associative array;
+    # supply one so the function can set the insertion mode and we can read it.
+    typeset -gA compstate
     # Capture candidates at the completion boundary without an interactive ZLE.
     # This models zsh's real behaviour: by default compadd keeps only candidates
     # that start with the typed word, and -U keeps every candidate. Fuzzy matches
@@ -76,6 +79,12 @@ complete_branches missing
 # A query matches branches that merely contain it, not only prefixes.
 complete_branches sed
 [ "${suggestions[*]}" = unused ]
+# Menu insertion keeps the typed word: without it zsh would replace a fuzzy
+# query with the common prefix of the matches, which is often empty.
+if [ -n "${ZSH_VERSION-}" ]; then
+    complete_branches feature/
+    [ "${compstate[insert]}" = menu ]
+fi
 
 # The standalone command prints the destination without changing the directory.
 [ "$(command worktree switch feature/one)" = "$(cd "$scratch_directory/one tree" && pwd -P)" ]
