@@ -61,6 +61,9 @@ complete_branches ''
 [ "${suggestions[*]}" = 'feature/one feature/two main origin/remote-only remote-only unused' ]
 complete_branches missing
 [ "${#suggestions[@]}" -eq 0 ]
+# A query matches branches that merely contain it, not only prefixes.
+complete_branches sed
+[ "${suggestions[*]}" = unused ]
 
 # The standalone command prints the destination without changing the directory.
 [ "$(command worktree switch feature/one)" = "$(cd "$scratch_directory/one tree" && pwd -P)" ]

@@ -30,7 +30,7 @@ func TestCompleteIncludesBranchesWithoutWorktrees(t *testing.T) {
 
 func TestCompleteBranches(t *testing.T) {
 	var candidates []worktree.Worktree
-	for _, branch := range []string{"main", "feature/two", "", "feature/one", "main"} {
+	for _, branch := range []string{"main", "feature/two", "", "feature/one", "main", "fix/blog"} {
 		candidates = append(candidates, worktree.NewWorktree("/repository/"+branch, branch))
 	}
 	for _, test := range []struct {
@@ -38,9 +38,10 @@ func TestCompleteBranches(t *testing.T) {
 		prefix string
 		want   []string
 	}{
-		{name: "all sorted unique branches", want: []string{"feature/one", "feature/two", "main"}},
+		{name: "all sorted unique branches", want: []string{"feature/one", "feature/two", "fix/blog", "main"}},
 		{name: "prefix", prefix: "feature/", want: []string{"feature/one", "feature/two"}},
 		{name: "exact", prefix: "main", want: []string{"main"}},
+		{name: "substring anywhere", prefix: "bl", want: []string{"fix/blog"}},
 		{name: "no matches", prefix: "missing"},
 		{name: "literal prefix", prefix: "feature/*"},
 	} {
