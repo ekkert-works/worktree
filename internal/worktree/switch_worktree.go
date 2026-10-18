@@ -36,8 +36,9 @@ func NewSwitchWorktree(lister WorktreeLister, creator WorktreeCreator) SwitchWor
 	return SwitchWorktree{lister: lister, creator: creator}
 }
 
-// Switch moves to the worktree that holds the branch. An exact branch match
-// wins, then the highest-scoring fuzzy match. When no worktree matches, it
+// Switch moves to the worktree that holds the branch. The branch name must
+// match exactly; fuzzy matching is left to shell completion, where the user
+// sees and picks the candidate. When no worktree matches, it
 // creates one: an existing branch is checked out, and an unknown name creates a
 // branch from the one checked out in the current directory. Worktrees are the
 // only unit this tool works with; it never checks a branch out in place.
@@ -63,10 +64,9 @@ func (u SwitchWorktree) Switch(ctx context.Context, command SwitchCommand) (Swit
 	return SwitchResult{Path: created.Path}, nil
 }
 
-// resolveWorktree finds the worktree to switch to. An exact branch match wins;
-// otherwise the highest-scoring fuzzy match does. It reports matched=false when
-// no worktree matches, so the caller can fall back to creating one. A tie for
-// the best match, exact or fuzzy, is ambiguous.
+// resolveWorktree finds the worktree that holds the branch. It reports
+// matched=false when no worktree does, so the caller can fall back to creating
+// one. More than one worktree for the branch is ambiguous.
 func resolveWorktree(worktrees []Worktree, query string) (path string, matched bool, err error) {
 	for _, candidate := range worktrees {
 		if !candidate.MatchesBranch(query) {
@@ -76,25 +76,6 @@ func resolveWorktree(worktrees []Worktree, query string) (path string, matched b
 			return "", false, ErrAmbiguous
 		}
 		path, matched = candidate.Path(), true
-	}
-	if matched {
-		return path, true, nil
-	}
-
-	bestScore := 0
-	tied := false
-	for _, candidate := range worktrees {
-		score := fuzzyScore(query, candidate.Branch())
-		switch {
-		case score <= 0:
-		case score > bestScore:
-			path, bestScore, matched, tied = candidate.Path(), score, true, false
-		case score == bestScore:
-			tied = true
-		}
-	}
-	if tied {
-		return "", false, ErrAmbiguous
 	}
 	return path, matched, nil
 }
