@@ -57,8 +57,8 @@ function is required to change the shell's directory. Without it, the binary
 prints the destination path only.
 
 If a worktree already holds the branch, the shell function changes to that
-directory. The branch name is matched exactly first, then by a ranked fuzzy
-match, so `worktree s feat` moves to the `feature/my-change` worktree.
+directory. The branch name must match exactly; shell completion fuzzy-matches
+branches, so `worktree s feat<Tab>` offers `feature/my-change`.
 
 If no worktree matches, the command creates one and moves you there:
 

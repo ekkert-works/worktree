@@ -57,10 +57,8 @@ func TestSwitch(t *testing.T) {
 		{name: "option", branch: "--force", wantError: worktree.ErrInvalidBranch},
 		{name: "no match creates worktree", branch: "xyz", worktrees: []worktree.Worktree{feature}, wantPath: "/created", wantCreate: true},
 		{name: "create failure", branch: "xyz", worktrees: []worktree.Worktree{feature}, createError: worktree.ErrAddFailure, wantError: worktree.ErrAddFailure, wantCreate: true},
-		{name: "fuzzy match", branch: "feat", worktrees: []worktree.Worktree{feature}, wantPath: "/repo with spaces"},
-		{name: "fuzzy ranks best", branch: "feat", worktrees: []worktree.Worktree{worktree.NewWorktree("/other", "some-feature-thing"), feature}, wantPath: "/repo with spaces"},
+		{name: "partial name creates worktree", branch: "feat/prod", worktrees: []worktree.Worktree{worktree.NewWorktree("/qr", "feat/eng-247-mobile-approved-qr")}, wantPath: "/created", wantCreate: true},
 		{name: "ambiguous", branch: "feature", worktrees: []worktree.Worktree{feature, feature}, wantError: worktree.ErrAmbiguous},
-		{name: "fuzzy tie is ambiguous", branch: "ab", worktrees: []worktree.Worktree{worktree.NewWorktree("/x", "a-b-1"), worktree.NewWorktree("/y", "a-b-2")}, wantError: worktree.ErrAmbiguous},
 		{name: "read failure", branch: "feature", listError: worktree.ErrReadFailure, wantError: worktree.ErrReadFailure},
 	} {
 		t.Run(test.name, func(t *testing.T) {
